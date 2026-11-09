@@ -1,0 +1,3 @@
+<Project>
+  <!-- Stops MSBuild from picking up the SuperSwitch (Ryubing) Directory.Build.props higher up. -->
+</Project>

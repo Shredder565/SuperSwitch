@@ -1,0 +1,1462 @@
+#version 450 core
+
+// SuperSwitch GPU ASTC decoder.
+// A direct port of Ryujinx.Graphics.Texture.Astc.AstcDecoder (C#), including its quirks, so that the
+// output is bit-identical to the CPU decoder. One invocation decodes one 128-bit block.
+
+layout (local_size_x = 64, local_size_y = 1, local_size_z = 1) in;
+
+layout (std140, set = 0, binding = 0) uniform astc_params
+{
+    ivec4 params0; // x = block width, y = block height, z = total blocks, w = level entry count
+    ivec4 params1; // x = invocations per dispatch row
+};
+
+layout (std430, set = 1, binding = 1) readonly buffer astc_in_s
+{
+    uvec4 in_blocks[];
+};
+
+layout (std430, set = 1, binding = 2) writeonly buffer astc_out_s
+{
+    uint out_texels[];
+};
+
+// Two ivec4 per level/layer entry:
+// [0] = (start block, block count x, total blocks, image size x)
+// [1] = (image size y * image size z, output texel offset, 0, 0)
+layout (std430, set = 1, binding = 3) readonly buffer astc_levels_s
+{
+    ivec4 level_info[];
+};
+
+// Encoding table for max values 0..255: bits | (encoding << 8). Encoding: 0 = bits, 1 = quint, 2 = trit.
+const uint ENCODINGS[256] = uint[256](0u, 1u, 512u, 2u, 256u, 513u, 513u, 3u, 3u, 257u, 257u, 514u, 514u, 514u, 514u, 4u, 4u, 4u, 4u, 258u, 258u, 258u, 258u, 515u, 515u, 515u, 515u, 515u, 515u, 515u, 515u, 5u, 5u, 5u, 5u, 5u, 5u, 5u, 5u, 259u, 259u, 259u, 259u, 259u, 259u, 259u, 259u, 516u, 516u, 516u, 516u, 516u, 516u, 516u, 516u, 516u, 516u, 516u, 516u, 516u, 516u, 516u, 516u, 6u, 6u, 6u, 6u, 6u, 6u, 6u, 6u, 6u, 6u, 6u, 6u, 6u, 6u, 6u, 6u, 260u, 260u, 260u, 260u, 260u, 260u, 260u, 260u, 260u, 260u, 260u, 260u, 260u, 260u, 260u, 260u, 517u, 517u, 517u, 517u, 517u, 517u, 517u, 517u, 517u, 517u, 517u, 517u, 517u, 517u, 517u, 517u, 517u, 517u, 517u, 517u, 517u, 517u, 517u, 517u, 517u, 517u, 517u, 517u, 517u, 517u, 517u, 517u, 7u, 7u, 7u, 7u, 7u, 7u, 7u, 7u, 7u, 7u, 7u, 7u, 7u, 7u, 7u, 7u, 7u, 7u, 7u, 7u, 7u, 7u, 7u, 7u, 7u, 7u, 7u, 7u, 7u, 7u, 7u, 7u, 261u, 261u, 261u, 261u, 261u, 261u, 261u, 261u, 261u, 261u, 261u, 261u, 261u, 261u, 261u, 261u, 261u, 261u, 261u, 261u, 261u, 261u, 261u, 261u, 261u, 261u, 261u, 261u, 261u, 261u, 261u, 261u, 518u, 518u, 518u, 518u, 518u, 518u, 518u, 518u, 518u, 518u, 518u, 518u, 518u, 518u, 518u, 518u, 518u, 518u, 518u, 518u, 518u, 518u, 518u, 518u, 518u, 518u, 518u, 518u, 518u, 518u, 518u, 518u, 518u, 518u, 518u, 518u, 518u, 518u, 518u, 518u, 518u, 518u, 518u, 518u, 518u, 518u, 518u, 518u, 518u, 518u, 518u, 518u, 518u, 518u, 518u, 518u, 518u, 518u, 518u, 518u, 518u, 518u, 518u, 518u, 8u);
+
+// Trit table: 5 trits per entry, 2 bits each.
+const uint TRITS[256] = uint[256](0u, 1u, 2u, 32u, 4u, 5u, 6u, 33u, 8u, 9u, 10u, 34u, 40u, 41u, 42u, 34u, 16u, 17u, 18u, 36u, 20u, 21u, 22u, 37u, 24u, 25u, 26u, 38u, 640u, 641u, 642u, 672u, 64u, 65u, 66u, 96u, 68u, 69u, 70u, 97u, 72u, 73u, 74u, 98u, 104u, 105u, 106u, 98u, 80u, 81u, 82u, 100u, 84u, 85u, 86u, 101u, 88u, 89u, 90u, 102u, 644u, 645u, 646u, 673u, 128u, 129u, 130u, 160u, 132u, 133u, 134u, 161u, 136u, 137u, 138u, 162u, 168u, 169u, 170u, 162u, 144u, 145u, 146u, 164u, 148u, 149u, 150u, 165u, 152u, 153u, 154u, 166u, 648u, 649u, 650u, 674u, 512u, 513u, 514u, 544u, 516u, 517u, 518u, 545u, 520u, 521u, 522u, 546u, 552u, 553u, 554u, 546u, 528u, 529u, 530u, 548u, 532u, 533u, 534u, 549u, 536u, 537u, 538u, 550u, 680u, 681u, 682u, 674u, 256u, 257u, 258u, 288u, 260u, 261u, 262u, 289u, 264u, 265u, 266u, 290u, 296u, 297u, 298u, 290u, 272u, 273u, 274u, 292u, 276u, 277u, 278u, 293u, 280u, 281u, 282u, 294u, 656u, 657u, 658u, 676u, 320u, 321u, 322u, 352u, 324u, 325u, 326u, 353u, 328u, 329u, 330u, 354u, 360u, 361u, 362u, 354u, 336u, 337u, 338u, 356u, 340u, 341u, 342u, 357u, 344u, 345u, 346u, 358u, 660u, 661u, 662u, 677u, 384u, 385u, 386u, 416u, 388u, 389u, 390u, 417u, 392u, 393u, 394u, 418u, 424u, 425u, 426u, 418u, 400u, 401u, 402u, 420u, 404u, 405u, 406u, 421u, 408u, 409u, 410u, 422u, 664u, 665u, 666u, 678u, 576u, 577u, 578u, 608u, 580u, 581u, 582u, 609u, 584u, 585u, 586u, 610u, 616u, 617u, 618u, 610u, 592u, 593u, 594u, 612u, 596u, 597u, 598u, 613u, 600u, 601u, 602u, 614u, 680u, 681u, 682u, 678u);
+
+// Quint table: 3 quints per entry, 3 bits each.
+const uint QUINTS[128] = uint[128](0u, 1u, 2u, 3u, 4u, 32u, 36u, 292u, 8u, 9u, 10u, 11u, 12u, 33u, 100u, 292u, 16u, 17u, 18u, 19u, 20u, 34u, 164u, 292u, 24u, 25u, 26u, 27u, 28u, 35u, 228u, 292u, 64u, 65u, 66u, 67u, 68u, 96u, 260u, 288u, 72u, 73u, 74u, 75u, 76u, 97u, 268u, 289u, 80u, 81u, 82u, 83u, 84u, 98u, 276u, 290u, 88u, 89u, 90u, 91u, 92u, 99u, 284u, 291u, 128u, 129u, 130u, 131u, 132u, 160u, 258u, 259u, 136u, 137u, 138u, 139u, 140u, 161u, 266u, 267u, 144u, 145u, 146u, 147u, 148u, 162u, 274u, 275u, 152u, 153u, 154u, 155u, 156u, 163u, 282u, 283u, 192u, 193u, 194u, 195u, 196u, 224u, 256u, 257u, 200u, 201u, 202u, 203u, 204u, 225u, 264u, 265u, 208u, 209u, 210u, 211u, 212u, 226u, 272u, 273u, 216u, 217u, 218u, 219u, 220u, 227u, 280u, 281u);
+
+const int ENC_BITS = 0;
+const int ENC_QUINT = 1;
+const int ENC_TRIT = 2;
+
+bool g_error;
+
+// ---------------------------------------------------------------------------------------------
+// 128-bit helpers
+
+uint readBitsAt(uvec4 v, int pos, int count)
+{
+    if (count <= 0 || pos >= 128)
+    {
+        return 0u;
+    }
+
+    int word = pos >> 5;
+    int bit = pos & 31;
+
+    uint lo = v[word] >> uint(bit);
+    uint hi = 0u;
+
+    if (bit != 0 && word < 3)
+    {
+        hi = v[word + 1] << uint(32 - bit);
+    }
+
+    uint value = lo | hi;
+
+    if (count < 32)
+    {
+        value &= (1u << uint(count)) - 1u;
+    }
+
+    return value;
+}
+
+uvec4 shiftRight128(uvec4 v, int amount)
+{
+    uvec4 result = uvec4(0u);
+
+    for (int i = 0; i < 4; i++)
+    {
+        result[i] = readBitsAt(v, amount + i * 32, 32);
+    }
+
+    return result;
+}
+
+uvec4 maskLow128(uvec4 v, int bits)
+{
+    uvec4 result = v;
+
+    for (int i = 0; i < 4; i++)
+    {
+        int lo = i * 32;
+
+        if (bits <= lo)
+        {
+            result[i] = 0u;
+        }
+        else if (bits < lo + 32)
+        {
+            result[i] &= (1u << uint(bits - lo)) - 1u;
+        }
+    }
+
+    return result;
+}
+
+struct BitStream
+{
+    uvec4 data;
+    int pos;
+};
+
+int readBits(inout BitStream s, int count)
+{
+    if (count == 0)
+    {
+        return 0;
+    }
+
+    uint value = readBitsAt(s.data, s.pos, count);
+    s.pos += count;
+
+    return int(value);
+}
+
+// ---------------------------------------------------------------------------------------------
+// Bits helpers (Bits.cs)
+
+int replicate(int value, int numberBits, int toBit)
+{
+    if (numberBits == 0 || toBit == 0)
+    {
+        return 0;
+    }
+
+    int tempValue = value & ((1 << numberBits) - 1);
+    int retValue = tempValue;
+    int resLength = numberBits;
+
+    while (resLength < toBit)
+    {
+        int comp = 0;
+
+        if (numberBits > toBit - resLength)
+        {
+            int newShift = toBit - resLength;
+            comp = numberBits - newShift;
+            numberBits = newShift;
+        }
+
+        retValue <<= numberBits;
+        retValue |= tempValue >> comp;
+        resLength += numberBits;
+    }
+
+    return retValue;
+}
+
+void bitTransferSigned(inout int a, inout int b)
+{
+    b >>= 1;
+    b |= a & 0x80;
+    a >>= 1;
+    a &= 0x3F;
+
+    if ((a & 0x20) != 0)
+    {
+        a -= 0x40;
+    }
+}
+
+// ---------------------------------------------------------------------------------------------
+// Integer sequences (IntegerEncoded.cs)
+
+int encodingOf(int maxVal)
+{
+    return int(ENCODINGS[maxVal] >> 8);
+}
+
+int encodingBits(int maxVal)
+{
+    return int(ENCODINGS[maxVal] & 0xFFu);
+}
+
+int getBitLength(int encoding, int numberBits, int numberVals)
+{
+    int totalBits = numberBits * numberVals;
+
+    if (encoding == ENC_TRIT)
+    {
+        totalBits += (numberVals * 8 + 4) / 5;
+    }
+    else if (encoding == ENC_QUINT)
+    {
+        totalBits += (numberVals * 7 + 2) / 3;
+    }
+
+    return totalBits;
+}
+
+const int MAX_VALUES = 72;
+
+int g_seqCount;
+int g_seqBits[MAX_VALUES];
+int g_seqTq[MAX_VALUES];
+
+void seqAdd(int bitValue, int tq)
+{
+    if (g_seqCount < MAX_VALUES)
+    {
+        g_seqBits[g_seqCount] = bitValue;
+        g_seqTq[g_seqCount] = tq;
+    }
+    else
+    {
+        g_error = true;
+    }
+
+    g_seqCount++;
+}
+
+void decodeIntegerSequence(inout BitStream s, int maxRange, int numberValues)
+{
+    g_seqCount = 0;
+
+    int encoding = encodingOf(maxRange);
+    int numberBits = encodingBits(maxRange);
+
+    int decoded = 0;
+
+    while (decoded < numberValues && !g_error)
+    {
+        if (encoding == ENC_QUINT)
+        {
+            int m[3];
+            uint encoded = 0u;
+            int encodedBitsRead = 0;
+
+            for (int i = 0; i < 3; i++)
+            {
+                m[i] = readBits(s, numberBits);
+
+                int interleaved = (i == 0) ? 3 : 2;
+                uint encodedBits = uint(readBits(s, interleaved));
+
+                encoded |= encodedBits << uint(encodedBitsRead);
+                encodedBitsRead += interleaved;
+            }
+
+            uint quints = QUINTS[encoded & 127u];
+
+            for (int i = 0; i < 3; i++)
+            {
+                seqAdd(m[i], int((quints >> uint(i * 3)) & 7u));
+            }
+
+            decoded += 3;
+        }
+        else if (encoding == ENC_TRIT)
+        {
+            int m[5];
+
+            m[0] = readBits(s, numberBits);
+            int encoded = readBits(s, 2);
+            m[1] = readBits(s, numberBits);
+            encoded |= readBits(s, 2) << 2;
+            m[2] = readBits(s, numberBits);
+            encoded |= readBits(s, 1) << 4;
+            m[3] = readBits(s, numberBits);
+            encoded |= readBits(s, 2) << 5;
+            m[4] = readBits(s, numberBits);
+            encoded |= readBits(s, 1) << 7;
+
+            uint trits = TRITS[encoded & 255];
+
+            for (int i = 0; i < 5; i++)
+            {
+                seqAdd(m[i], int((trits >> uint(i * 2)) & 3u));
+            }
+
+            decoded += 5;
+        }
+        else
+        {
+            seqAdd(readBits(s, numberBits), 0);
+            decoded++;
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------------------------
+// Block mode (DecodeBlockInfo)
+
+struct TexelParams
+{
+    int width;
+    int height;
+    int maxWeight;
+    bool dualPlane;
+    bool error;
+    bool voidExtentLdr;
+    bool voidExtentHdr;
+};
+
+int getPackedBitSize(TexelParams p)
+{
+    int indices = p.height * p.width;
+
+    if (p.dualPlane)
+    {
+        indices *= 2;
+    }
+
+    return getBitLength(encodingOf(p.maxWeight), encodingBits(p.maxWeight), indices);
+}
+
+int getNumWeightValues(TexelParams p)
+{
+    int ret = p.width * p.height;
+
+    if (p.dualPlane)
+    {
+        ret *= 2;
+    }
+
+    return ret;
+}
+
+TexelParams decodeBlockInfo(inout BitStream s)
+{
+    TexelParams p;
+    p.width = 0;
+    p.height = 0;
+    p.maxWeight = 0;
+    p.dualPlane = false;
+    p.error = false;
+    p.voidExtentLdr = false;
+    p.voidExtentHdr = false;
+
+    int modeBits = readBits(s, 11);
+
+    if ((modeBits & 0x01FF) == 0x1FC)
+    {
+        if ((modeBits & 0x200) != 0)
+        {
+            p.voidExtentHdr = true;
+        }
+        else
+        {
+            p.voidExtentLdr = true;
+        }
+
+        // C# evaluates the bit read only if the first test is false (short-circuit).
+        if ((modeBits & 0x400) == 0)
+        {
+            p.error = true;
+        }
+        else if (readBits(s, 1) == 0)
+        {
+            p.error = true;
+        }
+
+        return p;
+    }
+
+    if ((modeBits & 0xF) == 0)
+    {
+        p.error = true;
+        return p;
+    }
+
+    if ((modeBits & 0x3) == 0 && (modeBits & 0x1C0) == 0x1C0)
+    {
+        p.error = true;
+        return p;
+    }
+
+    int modeLayout;
+
+    if ((modeBits & 0x1) != 0 || (modeBits & 0x2) != 0)
+    {
+        if ((modeBits & 0x8) != 0)
+        {
+            if ((modeBits & 0x4) != 0)
+            {
+                modeLayout = ((modeBits & 0x100) != 0) ? 4 : 3;
+            }
+            else
+            {
+                modeLayout = 2;
+            }
+        }
+        else
+        {
+            modeLayout = ((modeBits & 0x4) != 0) ? 1 : 0;
+        }
+    }
+    else
+    {
+        if ((modeBits & 0x100) != 0)
+        {
+            if ((modeBits & 0x80) != 0)
+            {
+                modeLayout = ((modeBits & 0x20) != 0) ? 8 : 7;
+            }
+            else
+            {
+                modeLayout = 9;
+            }
+        }
+        else
+        {
+            modeLayout = ((modeBits & 0x80) != 0) ? 6 : 5;
+        }
+    }
+
+    int r = (modeBits >> 4) & 1;
+
+    if (modeLayout < 5)
+    {
+        r |= (modeBits & 0x3) << 1;
+    }
+    else
+    {
+        r |= (modeBits & 0xC) >> 1;
+    }
+
+    int a5 = (modeBits >> 5) & 0x3;
+
+    if (modeLayout == 0)
+    {
+        p.width = ((modeBits >> 7) & 0x3) + 4;
+        p.height = a5 + 2;
+    }
+    else if (modeLayout == 1)
+    {
+        p.width = ((modeBits >> 7) & 0x3) + 8;
+        p.height = a5 + 2;
+    }
+    else if (modeLayout == 2)
+    {
+        p.width = a5 + 2;
+        p.height = ((modeBits >> 7) & 0x3) + 8;
+    }
+    else if (modeLayout == 3)
+    {
+        p.width = a5 + 2;
+        p.height = ((modeBits >> 7) & 0x1) + 6;
+    }
+    else if (modeLayout == 4)
+    {
+        p.width = ((modeBits >> 7) & 0x1) + 2;
+        p.height = a5 + 2;
+    }
+    else if (modeLayout == 5)
+    {
+        p.width = 12;
+        p.height = a5 + 2;
+    }
+    else if (modeLayout == 6)
+    {
+        p.width = a5 + 2;
+        p.height = 12;
+    }
+    else if (modeLayout == 7)
+    {
+        p.width = 6;
+        p.height = 10;
+    }
+    else if (modeLayout == 8)
+    {
+        p.width = 10;
+        p.height = 6;
+    }
+    else
+    {
+        p.width = a5 + 6;
+        p.height = ((modeBits >> 9) & 0x3) + 6;
+    }
+
+    bool d = (modeLayout != 9) && ((modeBits & 0x400) != 0);
+    bool h = (modeLayout != 9) && ((modeBits & 0x200) != 0);
+
+    // r is in [2, 7] for valid modes; the C# code would throw on an out of range index.
+    if (r < 2 || r > 7)
+    {
+        p.error = true;
+        return p;
+    }
+
+    const int maxWeightsH[6] = int[6](9, 11, 15, 19, 23, 31);
+    const int maxWeightsL[6] = int[6](1, 2, 3, 4, 5, 7);
+
+    p.maxWeight = h ? maxWeightsH[r - 2] : maxWeightsL[r - 2];
+    p.dualPlane = d;
+
+    return p;
+}
+
+// ---------------------------------------------------------------------------------------------
+// Color values (DecodeColorValues)
+
+int g_colorValues[32];
+
+void decodeColorValues(inout BitStream colorStream, uint modes[4], int numberPartitions, int numberBitsForColorData)
+{
+    int numberValues = 0;
+
+    for (int i = 0; i < numberPartitions; i++)
+    {
+        numberValues += int((modes[i] >> 2) + 1u) << 1;
+    }
+
+    int range = 256;
+
+    while (--range > 0)
+    {
+        int bitLength = getBitLength(encodingOf(range), encodingBits(range), numberValues);
+
+        if (bitLength <= numberBitsForColorData)
+        {
+            uint matched = ENCODINGS[range];
+
+            while (--range > 0)
+            {
+                if (ENCODINGS[range] != matched)
+                {
+                    break;
+                }
+            }
+
+            range++;
+            break;
+        }
+    }
+
+    decodeIntegerSequence(colorStream, range, numberValues);
+
+    if (g_error)
+    {
+        return;
+    }
+
+    int outputIndices = 0;
+    int encoding = encodingOf(range);
+
+    for (int n = 0; n < g_seqCount && n < MAX_VALUES; n++)
+    {
+        int bitLength = encodingBits(range);
+        int bitValue = g_seqBits[n];
+
+        int b = 0;
+        int c = 0;
+        int d = 0;
+        int a = replicate(bitValue & 1, 1, 9);
+
+        // The C# decoder writes into a 32 entry span and throws past the end (which fails the block).
+        if (outputIndices >= 32)
+        {
+            g_error = true;
+            return;
+        }
+
+        if (encoding == ENC_BITS)
+        {
+            g_colorValues[outputIndices] = replicate(bitValue, bitLength, 8);
+            outputIndices++;
+            continue;
+        }
+
+        d = g_seqTq[n];
+
+        if (encoding == ENC_TRIT)
+        {
+            if (bitLength == 1)
+            {
+                c = 204;
+            }
+            else if (bitLength == 2)
+            {
+                c = 93;
+                int b2 = (bitValue >> 1) & 1;
+                b = (b2 << 8) | (b2 << 4) | (b2 << 2) | (b2 << 1);
+            }
+            else if (bitLength == 3)
+            {
+                c = 44;
+                int cb = (bitValue >> 1) & 3;
+                b = (cb << 7) | (cb << 2) | cb;
+            }
+            else if (bitLength == 4)
+            {
+                c = 22;
+                int dcb = (bitValue >> 1) & 7;
+                b = (dcb << 6) | dcb;
+            }
+            else if (bitLength == 5)
+            {
+                c = 11;
+                int edcb = (bitValue >> 1) & 0xF;
+                b = (edcb << 5) | (edcb >> 2);
+            }
+            else if (bitLength == 6)
+            {
+                c = 5;
+                int fedcb = (bitValue >> 1) & 0x1F;
+                b = (fedcb << 4) | (fedcb >> 4);
+            }
+            else
+            {
+                g_error = true;
+                return;
+            }
+        }
+        else
+        {
+            if (bitLength == 1)
+            {
+                c = 113;
+            }
+            else if (bitLength == 2)
+            {
+                c = 54;
+                int b2 = (bitValue >> 1) & 1;
+                b = (b2 << 8) | (b2 << 3) | (b2 << 2);
+            }
+            else if (bitLength == 3)
+            {
+                c = 26;
+                int cb = (bitValue >> 1) & 3;
+                b = (cb << 7) | (cb << 1) | (cb >> 1);
+            }
+            else if (bitLength == 4)
+            {
+                c = 13;
+                int dcb = (bitValue >> 1) & 7;
+                b = (dcb << 6) | (dcb >> 1);
+            }
+            else if (bitLength == 5)
+            {
+                c = 6;
+                int edcb = (bitValue >> 1) & 0xF;
+                b = (edcb << 5) | (edcb >> 3);
+            }
+            else
+            {
+                g_error = true;
+                return;
+            }
+        }
+
+        int t = d * c + b;
+        t ^= a;
+        t = (a & 0x80) | (t >> 2);
+
+        g_colorValues[outputIndices] = t;
+        outputIndices++;
+    }
+}
+
+// ---------------------------------------------------------------------------------------------
+// Endpoints (ComputeEndpoints). Components are stored as (A, R, G, B), like AstcPixel.
+
+ivec4 g_endpoints[8];
+
+ivec4 pixel(int a, int r, int g, int b)
+{
+    return ivec4(a, r, g, b);
+}
+
+ivec4 blueContract(int a, int r, int g, int b)
+{
+    return ivec4(a, (r + b) >> 1, (g + b) >> 1, b);
+}
+
+ivec4 clampByte(ivec4 p)
+{
+    return clamp(p, ivec4(0), ivec4(255));
+}
+
+// Emulates the C# (short) casts in the AstcPixel constructor.
+int toShort(int v)
+{
+    return (v << 16) >> 16;
+}
+
+ivec4 shortPixel(ivec4 p)
+{
+    return ivec4(toShort(p.x), toShort(p.y), toShort(p.z), toShort(p.w));
+}
+
+void computeEndpoints(int partIdx, uint mode, inout int pos)
+{
+    int base = partIdx * 2;
+    int v[8];
+
+    for (int i = 0; i < 8; i++)
+    {
+        int index = pos + i;
+        v[i] = (index < 32) ? g_colorValues[index] : 0;
+    }
+
+    if (mode == 0u)
+    {
+        g_endpoints[base] = shortPixel(pixel(0xFF, v[0], v[0], v[0]));
+        g_endpoints[base + 1] = shortPixel(pixel(0xFF, v[1], v[1], v[1]));
+        pos += 2;
+    }
+    else if (mode == 1u)
+    {
+        int l0 = (v[0] >> 2) | (v[1] & 0xC0);
+        int l1 = min(l0 + (v[1] & 0x3F), 0xFF);
+
+        g_endpoints[base] = shortPixel(pixel(0xFF, l0, l0, l0));
+        g_endpoints[base + 1] = shortPixel(pixel(0xFF, l1, l1, l1));
+        pos += 2;
+    }
+    else if (mode == 4u)
+    {
+        g_endpoints[base] = shortPixel(pixel(v[2], v[0], v[0], v[0]));
+        g_endpoints[base + 1] = shortPixel(pixel(v[3], v[1], v[1], v[1]));
+        pos += 4;
+    }
+    else if (mode == 5u)
+    {
+        bitTransferSigned(v[1], v[0]);
+        bitTransferSigned(v[3], v[2]);
+
+        g_endpoints[base] = clampByte(shortPixel(pixel(v[2], v[0], v[0], v[0])));
+        g_endpoints[base + 1] = clampByte(shortPixel(pixel(v[2] + v[3], v[0] + v[1], v[0] + v[1], v[0] + v[1])));
+        pos += 4;
+    }
+    else if (mode == 6u)
+    {
+        g_endpoints[base] = shortPixel(pixel(0xFF, (v[0] * v[3]) >> 8, (v[1] * v[3]) >> 8, (v[2] * v[3]) >> 8));
+        g_endpoints[base + 1] = shortPixel(pixel(0xFF, v[0], v[1], v[2]));
+        pos += 4;
+    }
+    else if (mode == 8u)
+    {
+        if (v[1] + v[3] + v[5] >= v[0] + v[2] + v[4])
+        {
+            g_endpoints[base] = shortPixel(pixel(0xFF, v[0], v[2], v[4]));
+            g_endpoints[base + 1] = shortPixel(pixel(0xFF, v[1], v[3], v[5]));
+        }
+        else
+        {
+            g_endpoints[base] = shortPixel(blueContract(0xFF, v[1], v[3], v[5]));
+            g_endpoints[base + 1] = shortPixel(blueContract(0xFF, v[0], v[2], v[4]));
+        }
+
+        pos += 6;
+    }
+    else if (mode == 9u)
+    {
+        bitTransferSigned(v[1], v[0]);
+        bitTransferSigned(v[3], v[2]);
+        bitTransferSigned(v[5], v[4]);
+
+        if (v[1] + v[3] + v[5] >= 0)
+        {
+            g_endpoints[base] = shortPixel(pixel(0xFF, v[0], v[2], v[4]));
+            g_endpoints[base + 1] = shortPixel(pixel(0xFF, v[0] + v[1], v[2] + v[3], v[4] + v[5]));
+        }
+        else
+        {
+            g_endpoints[base] = shortPixel(blueContract(0xFF, v[0] + v[1], v[2] + v[3], v[4] + v[5]));
+            g_endpoints[base + 1] = shortPixel(blueContract(0xFF, v[0], v[2], v[4]));
+        }
+
+        g_endpoints[base] = clampByte(g_endpoints[base]);
+        g_endpoints[base + 1] = clampByte(g_endpoints[base + 1]);
+        pos += 6;
+    }
+    else if (mode == 10u)
+    {
+        g_endpoints[base] = shortPixel(pixel(v[4], (v[0] * v[3]) >> 8, (v[1] * v[3]) >> 8, (v[2] * v[3]) >> 8));
+        g_endpoints[base + 1] = shortPixel(pixel(v[5], v[0], v[1], v[2]));
+        pos += 6;
+    }
+    else if (mode == 12u)
+    {
+        if (v[1] + v[3] + v[5] >= v[0] + v[2] + v[4])
+        {
+            g_endpoints[base] = shortPixel(pixel(v[6], v[0], v[2], v[4]));
+            g_endpoints[base + 1] = shortPixel(pixel(v[7], v[1], v[3], v[5]));
+        }
+        else
+        {
+            g_endpoints[base] = shortPixel(blueContract(v[7], v[1], v[3], v[5]));
+            g_endpoints[base + 1] = shortPixel(blueContract(v[6], v[0], v[2], v[4]));
+        }
+
+        pos += 8;
+    }
+    else if (mode == 13u)
+    {
+        bitTransferSigned(v[1], v[0]);
+        bitTransferSigned(v[3], v[2]);
+        bitTransferSigned(v[5], v[4]);
+        bitTransferSigned(v[7], v[6]);
+
+        if (v[1] + v[3] + v[5] >= 0)
+        {
+            g_endpoints[base] = shortPixel(pixel(v[6], v[0], v[2], v[4]));
+            g_endpoints[base + 1] = shortPixel(pixel(v[7] + v[6], v[0] + v[1], v[2] + v[3], v[4] + v[5]));
+        }
+        else
+        {
+            g_endpoints[base] = shortPixel(blueContract(v[6] + v[7], v[0] + v[1], v[2] + v[3], v[4] + v[5]));
+            g_endpoints[base + 1] = shortPixel(blueContract(v[6], v[0], v[2], v[4]));
+        }
+
+        g_endpoints[base] = clampByte(g_endpoints[base]);
+        g_endpoints[base + 1] = clampByte(g_endpoints[base + 1]);
+        pos += 8;
+    }
+    else
+    {
+        // HDR or invalid endpoint mode.
+        g_error = true;
+    }
+}
+
+// ---------------------------------------------------------------------------------------------
+// Texel weights
+
+int unquantizeTexelWeight(int bitValue, int bitLength, int tq, int encoding)
+{
+    int a = replicate(bitValue & 1, 1, 7);
+    int b = 0;
+    int c = 0;
+    int d = 0;
+    int result = 0;
+
+    if (encoding == ENC_BITS)
+    {
+        result = replicate(bitValue, bitLength, 6);
+    }
+    else if (encoding == ENC_TRIT)
+    {
+        d = tq;
+
+        if (bitLength == 0)
+        {
+            result = (d == 1) ? 32 : ((d == 2) ? 63 : 0);
+        }
+        else if (bitLength == 1)
+        {
+            c = 50;
+        }
+        else if (bitLength == 2)
+        {
+            c = 23;
+            int b2 = (bitValue >> 1) & 1;
+            b = (b2 << 6) | (b2 << 2) | b2;
+        }
+        else if (bitLength == 3)
+        {
+            c = 11;
+            int cb = (bitValue >> 1) & 3;
+            b = (cb << 5) | cb;
+        }
+        else
+        {
+            g_error = true;
+        }
+    }
+    else
+    {
+        d = tq;
+
+        if (bitLength == 0)
+        {
+            if (d == 1) result = 16;
+            else if (d == 2) result = 32;
+            else if (d == 3) result = 47;
+            else if (d == 4) result = 63;
+            else result = 0;
+        }
+        else if (bitLength == 1)
+        {
+            c = 28;
+        }
+        else if (bitLength == 2)
+        {
+            c = 13;
+            int b2 = (bitValue >> 1) & 1;
+            b = (b2 << 6) | (b2 << 1);
+        }
+        else
+        {
+            g_error = true;
+        }
+    }
+
+    if (encoding != ENC_BITS && bitLength > 0)
+    {
+        result = d * c + b;
+        result ^= a;
+        result = (a & 0x20) | (result >> 2);
+    }
+
+    if (result > 32)
+    {
+        result += 1;
+    }
+
+    return result;
+}
+
+int g_weights[2][64];
+
+// ---------------------------------------------------------------------------------------------
+// Partitions
+
+uint hash52(uint val)
+{
+    val ^= val >> 15u;
+    val -= val << 17u;
+    val += val << 7u;
+    val += val << 4u;
+    val ^= val >> 5u;
+    val += val << 16u;
+    val ^= val >> 7u;
+    val ^= val >> 3u;
+    val ^= val << 6u;
+    val ^= val >> 17u;
+
+    return val;
+}
+
+int selectPartition(int seed, int x, int y, int z, int partitionCount, bool isSmallBlock)
+{
+    if (partitionCount == 1)
+    {
+        return 0;
+    }
+
+    if (isSmallBlock)
+    {
+        x <<= 1;
+        y <<= 1;
+        z <<= 1;
+    }
+
+    seed += (partitionCount - 1) * 1024;
+
+    int rightNum = int(hash52(uint(seed)));
+
+    int seed01 = rightNum & 0xF;
+    int seed02 = (rightNum >> 4) & 0xF;
+    int seed03 = (rightNum >> 8) & 0xF;
+    int seed04 = (rightNum >> 12) & 0xF;
+    int seed05 = (rightNum >> 16) & 0xF;
+    int seed06 = (rightNum >> 20) & 0xF;
+    int seed07 = (rightNum >> 24) & 0xF;
+    int seed08 = (rightNum >> 28) & 0xF;
+    int seed09 = (rightNum >> 18) & 0xF;
+    int seed10 = (rightNum >> 22) & 0xF;
+    int seed11 = (rightNum >> 26) & 0xF;
+    int seed12 = ((rightNum >> 30) | (rightNum << 2)) & 0xF;
+
+    seed01 *= seed01;
+    seed02 *= seed02;
+    seed03 *= seed03;
+    seed04 *= seed04;
+    seed05 *= seed05;
+    seed06 *= seed06;
+    seed07 *= seed07;
+    seed08 *= seed08;
+    seed09 *= seed09;
+    seed10 *= seed10;
+    seed11 *= seed11;
+    seed12 *= seed12;
+
+    int seedHash1;
+    int seedHash2;
+
+    if ((seed & 1) != 0)
+    {
+        seedHash1 = (seed & 2) != 0 ? 4 : 5;
+        seedHash2 = (partitionCount == 3) ? 6 : 5;
+    }
+    else
+    {
+        seedHash1 = (partitionCount == 3) ? 6 : 5;
+        seedHash2 = (seed & 2) != 0 ? 4 : 5;
+    }
+
+    int seedHash3 = (seed & 0x10) != 0 ? seedHash1 : seedHash2;
+
+    seed01 >>= seedHash1;
+    seed02 >>= seedHash2;
+    seed03 >>= seedHash1;
+    seed04 >>= seedHash2;
+    seed05 >>= seedHash1;
+    seed06 >>= seedHash2;
+    seed07 >>= seedHash1;
+    seed08 >>= seedHash2;
+    seed09 >>= seedHash3;
+    seed10 >>= seedHash3;
+    seed11 >>= seedHash3;
+    seed12 >>= seedHash3;
+
+    int a = seed01 * x + seed02 * y + seed11 * z + (rightNum >> 14);
+    int b = seed03 * x + seed04 * y + seed12 * z + (rightNum >> 10);
+    int c = seed05 * x + seed06 * y + seed09 * z + (rightNum >> 6);
+    int d = seed07 * x + seed08 * y + seed10 * z + (rightNum >> 2);
+
+    a &= 0x3F;
+    b &= 0x3F;
+    c &= 0x3F;
+    d &= 0x3F;
+
+    if (partitionCount < 4)
+    {
+        d = 0;
+    }
+
+    if (partitionCount < 3)
+    {
+        c = 0;
+    }
+
+    if (a >= b && a >= c && a >= d)
+    {
+        return 0;
+    }
+    else if (b >= c && b >= d)
+    {
+        return 1;
+    }
+    else if (c >= d)
+    {
+        return 2;
+    }
+
+    return 3;
+}
+
+// ---------------------------------------------------------------------------------------------
+// Output
+
+int g_outBase;
+int g_outStride;
+int g_outX;
+int g_outY;
+int g_pixelX;
+int g_pixelY;
+
+void writeTexel(int i, int j, uint value)
+{
+    if (i < g_outX && j < g_outY)
+    {
+        out_texels[g_outBase + (g_pixelY + j) * g_outStride + g_pixelX + i] = value;
+    }
+}
+
+void fillBlock(int blockWidth, int blockHeight, uint value)
+{
+    for (int j = 0; j < blockHeight; j++)
+    {
+        for (int i = 0; i < blockWidth; i++)
+        {
+            writeTexel(i, j, value);
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------------------------
+// Block decode (DecompressBlock)
+
+void decompressBlock(uvec4 block, int blockWidth, int blockHeight)
+{
+    g_error = false;
+
+    BitStream bitStream;
+    bitStream.data = block;
+    bitStream.pos = 0;
+
+    TexelParams texelParams = decodeBlockInfo(bitStream);
+
+    if (texelParams.error || texelParams.voidExtentHdr)
+    {
+        fillBlock(blockWidth, blockHeight, 0u);
+        return;
+    }
+
+    if (texelParams.voidExtentLdr)
+    {
+        for (int i = 0; i < 4; i++)
+        {
+            readBits(bitStream, 13);
+        }
+
+        int r = readBits(bitStream, 16);
+        int g = readBits(bitStream, 16);
+        int b = readBits(bitStream, 16);
+        int a = readBits(bitStream, 16);
+
+        uint rgba = uint((r >> 8) | (g & 0xFF00) | ((b & 0xFF00) << 8)) | (uint(a & 0xFF00) << 16u);
+
+        fillBlock(blockWidth, blockHeight, rgba);
+        return;
+    }
+
+    if (texelParams.width > blockWidth || texelParams.height > blockHeight)
+    {
+        fillBlock(blockWidth, blockHeight, 0u);
+        return;
+    }
+
+    int numberPartitions = readBits(bitStream, 2) + 1;
+
+    if (numberPartitions == 4 && texelParams.dualPlane)
+    {
+        fillBlock(blockWidth, blockHeight, 0u);
+        return;
+    }
+
+    uint colorEndpointMode[4] = uint[4](0u, 0u, 0u, 0u);
+    int partitionIndex;
+    uint baseColorEndpointMode = 0u;
+
+    if (numberPartitions == 1)
+    {
+        colorEndpointMode[0] = uint(readBits(bitStream, 4));
+        partitionIndex = 0;
+    }
+    else
+    {
+        partitionIndex = readBits(bitStream, 10);
+        baseColorEndpointMode = uint(readBits(bitStream, 6));
+    }
+
+    uint baseMode = baseColorEndpointMode & 3u;
+
+    int numberWeightBits = getPackedBitSize(texelParams);
+    int remainingBits = (128 - bitStream.pos) - numberWeightBits;
+
+    int extraColorEndpointModeBits = 0;
+
+    if (baseMode != 0u)
+    {
+        if (numberPartitions == 2)
+        {
+            extraColorEndpointModeBits = 2;
+        }
+        else if (numberPartitions == 3)
+        {
+            extraColorEndpointModeBits = 5;
+        }
+        else if (numberPartitions == 4)
+        {
+            extraColorEndpointModeBits = 8;
+        }
+    }
+
+    remainingBits -= extraColorEndpointModeBits;
+
+    int planeSelectorBits = texelParams.dualPlane ? 2 : 0;
+
+    remainingBits -= planeSelectorBits;
+
+    int colorDataBits = remainingBits;
+
+    // The C# decoder copies the color endpoint bits (8 at a time) into a separate zero-initialized stream.
+    BitStream colorStream;
+    colorStream.pos = 0;
+
+    if (colorDataBits > 0)
+    {
+        colorStream.data = maskLow128(shiftRight128(block, bitStream.pos), colorDataBits);
+        bitStream.pos += colorDataBits;
+    }
+    else
+    {
+        colorStream.data = uvec4(0u);
+
+        // The copy loop runs while remaining > 0, so a negative count reads nothing.
+    }
+
+    int planeIndices = readBits(bitStream, planeSelectorBits);
+
+    if (baseMode != 0u)
+    {
+        uint extraColorEndpointMode = uint(readBits(bitStream, extraColorEndpointModeBits));
+        uint tempColorEndpointMode = (extraColorEndpointMode << 6u) | baseColorEndpointMode;
+        tempColorEndpointMode >>= 2u;
+
+        bool cflags[4] = bool[4](false, false, false, false);
+
+        for (int i = 0; i < numberPartitions; i++)
+        {
+            cflags[i] = (tempColorEndpointMode & 1u) != 0u;
+            tempColorEndpointMode >>= 1u;
+        }
+
+        uint mflags[4] = uint[4](0u, 0u, 0u, 0u);
+
+        for (int i = 0; i < numberPartitions; i++)
+        {
+            mflags[i] = tempColorEndpointMode & 3u;
+            tempColorEndpointMode >>= 2u;
+        }
+
+        for (int i = 0; i < numberPartitions; i++)
+        {
+            colorEndpointMode[i] = baseMode;
+
+            if (!cflags[i])
+            {
+                colorEndpointMode[i] -= 1u;
+            }
+
+            colorEndpointMode[i] <<= 2u;
+            colorEndpointMode[i] |= mflags[i];
+        }
+    }
+    else if (numberPartitions > 1)
+    {
+        uint tempColorEndpointMode = baseColorEndpointMode >> 2u;
+
+        for (int i = 0; i < numberPartitions; i++)
+        {
+            colorEndpointMode[i] = tempColorEndpointMode;
+        }
+    }
+
+    for (int i = 0; i < 32; i++)
+    {
+        g_colorValues[i] = 0;
+    }
+
+    decodeColorValues(colorStream, colorEndpointMode, numberPartitions, colorDataBits);
+
+    if (g_error)
+    {
+        fillBlock(blockWidth, blockHeight, 0u);
+        return;
+    }
+
+    int colorValuesPosition = 0;
+
+    for (int i = 0; i < numberPartitions; i++)
+    {
+        computeEndpoints(i, colorEndpointMode[i], colorValuesPosition);
+    }
+
+    if (g_error)
+    {
+        fillBlock(blockWidth, blockHeight, 0u);
+        return;
+    }
+
+    // Texel weights are stored bit-reversed at the top of the block.
+    uvec4 reversed = uvec4(bitfieldReverse(block.w), bitfieldReverse(block.z), bitfieldReverse(block.y), bitfieldReverse(block.x));
+
+    BitStream weightStream;
+    weightStream.data = maskLow128(reversed, numberWeightBits);
+    weightStream.pos = 0;
+
+    decodeIntegerSequence(weightStream, texelParams.maxWeight, getNumWeightValues(texelParams));
+
+    if (g_error)
+    {
+        fillBlock(blockWidth, blockHeight, 0u);
+        return;
+    }
+
+    // Unquantize the weight grid.
+    int weightEncoding = encodingOf(texelParams.maxWeight);
+    int weightBits = encodingBits(texelParams.maxWeight);
+    int gridSize = texelParams.width * texelParams.height;
+    int planeCount = texelParams.dualPlane ? 2 : 1;
+
+    if (gridSize > 64)
+    {
+        fillBlock(blockWidth, blockHeight, 0u);
+        return;
+    }
+
+    for (int w = 0; w < gridSize; w++)
+    {
+        int index0 = w * planeCount;
+
+        g_weights[0][w] = unquantizeTexelWeight(g_seqBits[min(index0, MAX_VALUES - 1)], weightBits, g_seqTq[min(index0, MAX_VALUES - 1)], weightEncoding);
+
+        if (texelParams.dualPlane)
+        {
+            int index1 = index0 + 1;
+            g_weights[1][w] = unquantizeTexelWeight(g_seqBits[min(index1, MAX_VALUES - 1)], weightBits, g_seqTq[min(index1, MAX_VALUES - 1)], weightEncoding);
+        }
+    }
+
+    if (g_error)
+    {
+        fillBlock(blockWidth, blockHeight, 0u);
+        return;
+    }
+
+    int ds = (1024 + blockWidth / 2) / (blockWidth - 1);
+    int dt = (1024 + blockHeight / 2) / (blockHeight - 1);
+
+    bool isSmallBlock = (blockHeight * blockWidth) < 32;
+
+    for (int t = 0; t < blockHeight; t++)
+    {
+        for (int s = 0; s < blockWidth; s++)
+        {
+            // Weight infill (Section C.2.18), per plane.
+            int planeWeight[2] = int[2](0, 0);
+
+            for (int plane = 0; plane < planeCount; plane++)
+            {
+                int cs = ds * s;
+                int ct = dt * t;
+
+                int gs = (cs * (texelParams.width - 1) + 32) >> 6;
+                int gt = (ct * (texelParams.height - 1) + 32) >> 6;
+
+                int js = gs >> 4;
+                int fs = gs & 0xF;
+
+                int jt = gt >> 4;
+                int ft = gt & 0x0F;
+
+                int w11 = (fs * ft + 8) >> 4;
+
+                int v0 = js + jt * texelParams.width;
+
+                int weight = 8;
+
+                if (v0 < gridSize)
+                {
+                    weight += g_weights[plane][v0] * (16 - fs - ft + w11);
+
+                    if (v0 + 1 < gridSize)
+                    {
+                        weight += g_weights[plane][v0 + 1] * (fs - w11);
+                    }
+                }
+
+                if (v0 + texelParams.width < gridSize)
+                {
+                    weight += g_weights[plane][v0 + texelParams.width] * (ft - w11);
+
+                    if (v0 + texelParams.width + 1 < gridSize)
+                    {
+                        weight += g_weights[plane][v0 + texelParams.width + 1] * w11;
+                    }
+                }
+
+                planeWeight[plane] = weight >> 4;
+            }
+
+            int partIdx = selectPartition(partitionIndex, s, t, 0, numberPartitions, isSmallBlock);
+
+            int components[4];
+
+            for (int component = 0; component < 4; component++)
+            {
+                int c0 = g_endpoints[partIdx * 2][component];
+                int c1 = g_endpoints[partIdx * 2 + 1][component];
+
+                // Bits.Replicate8_16Table: replicates the low 8 bits to 16.
+                c0 = ((c0 & 0xFF) << 8) | (c0 & 0xFF);
+                c1 = ((c1 & 0xFF) << 8) | (c1 & 0xFF);
+
+                int plane = 0;
+
+                if (texelParams.dualPlane && (((planeIndices + 1) & 3) == component))
+                {
+                    plane = 1;
+                }
+
+                int weight = planeWeight[plane];
+                int finalComponent = (c0 * (64 - weight) + c1 * weight + 32) / 64;
+
+                if (finalComponent == 65535)
+                {
+                    components[component] = 255;
+                }
+                else
+                {
+                    // Integer equivalent of (int)(255.0 * (finalComponent / 65536.0) + 0.5).
+                    components[component] = (255 * finalComponent + 32768) >> 16;
+                }
+            }
+
+            // AstcPixel.Pack: A << 24 | B << 16 | G << 8 | R.
+            uint packed = uint(components[1] & 0xFF) |
+                          (uint(components[2] & 0xFF) << 8u) |
+                          (uint(components[3] & 0xFF) << 16u) |
+                          (uint(components[0] & 0xFF) << 24u);
+
+            writeTexel(s, t, packed);
+        }
+    }
+}
+
+void main()
+{
+    int blockWidth = params0.x;
+    int blockHeight = params0.y;
+    int totalBlocks = params0.z;
+    int entryCount = params0.w;
+
+    int index = int(gl_GlobalInvocationID.x) + int(gl_GlobalInvocationID.y) * params1.x;
+
+    if (index >= totalBlocks)
+    {
+        return;
+    }
+
+    // Find the level/layer this block belongs to.
+    int entry = -1;
+
+    for (int i = 0; i < entryCount; i++)
+    {
+        ivec4 info0 = level_info[i * 2];
+
+        if (index < info0.x + info0.z)
+        {
+            entry = i;
+            break;
+        }
+    }
+
+    if (entry < 0)
+    {
+        return;
+    }
+
+    ivec4 info0 = level_info[entry * 2];
+    ivec4 info1 = level_info[entry * 2 + 1];
+
+    int blockIndex = index - info0.x;
+    int blockCountX = info0.y;
+    int imageSizeX = info0.w;
+    int imageSizeYZ = info1.x;
+
+    int blockX = blockIndex % blockCountX;
+    int blockY = blockIndex / blockCountX;
+
+    g_pixelX = blockX * blockWidth;
+    g_pixelY = blockY * blockHeight;
+
+    g_outX = min(g_pixelX + blockWidth, imageSizeX) - g_pixelX;
+    g_outY = min(g_pixelY + blockHeight, imageSizeYZ) - g_pixelY;
+
+    g_outBase = info1.y;
+    g_outStride = imageSizeX;
+
+    decompressBlock(in_blocks[index], blockWidth, blockHeight);
+}
