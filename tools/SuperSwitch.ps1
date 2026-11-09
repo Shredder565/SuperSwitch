@@ -73,6 +73,18 @@ function Invoke-Build {
     return $LASTEXITCODE
 }
 
+function Sync-Source {
+    # When this folder is a Git checkout of the SuperSwitch repository, pick up the latest source from GitHub
+    # before building. Never fatal: offline, or with local edits in the way, SuperSwitch builds what is here.
+    if (-not (Test-Path (Join-Path $root '.git'))) { return }
+    if (-not (Get-Command git -ErrorAction SilentlyContinue)) { return }
+    Write-Step 'Checking GitHub for source updates'
+    git -C $root pull --ff-only 2>&1 | Out-Host
+    if ($LASTEXITCODE -ne 0) {
+        Write-Host 'Could not update from GitHub (offline, or local changes are in the way). Building the source that is here.' -ForegroundColor Yellow
+    }
+}
+
 function Backup-Source {
     # Keep a copy of the SuperSwitch source on OneDrive, so a reformat can't lose the work again.
     # Runs hidden in the background (only changed files are copied), so it never delays starting SuperSwitch.
@@ -92,6 +104,8 @@ if (-not (Get-Command dotnet -ErrorAction SilentlyContinue)) {
     Read-Host 'Press Enter to close'
     exit 1
 }
+
+Sync-Source
 
 if (Test-NeedsBuild) {
     "SuperSwitch build log" | Out-File $log
