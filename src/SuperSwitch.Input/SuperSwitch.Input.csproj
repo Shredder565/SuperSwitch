@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <DefaultItemExcludes>$(DefaultItemExcludes);._*</DefaultItemExcludes>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="System.IO.Hashing" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\SuperSwitch.HLE\SuperSwitch.HLE.csproj" />
+    <ProjectReference Include="..\SuperSwitch.Common\SuperSwitch.Common.csproj" />
+  </ItemGroup>
+
+</Project>

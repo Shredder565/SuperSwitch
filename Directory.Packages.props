@@ -4,7 +4,7 @@
   </PropertyGroup>
   <ItemGroup>
     
-    <!-- Packages included in Ryujinx should be the latest stable releases -->
+    <!-- Packages included in SuperSwitch should be the latest stable releases -->
     <!-- unless otherwise required for improved functionality or regressions ocurred. -->
     
     <!-- Packages are listed by module/function first, then alphabetical order. -->

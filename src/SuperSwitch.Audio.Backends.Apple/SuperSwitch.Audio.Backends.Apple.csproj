@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\SuperSwitch.Audio\SuperSwitch.Audio.csproj" />
+    <ProjectReference Include="..\SuperSwitch.Common\SuperSwitch.Common.csproj" />
+  </ItemGroup>
+
+</Project>

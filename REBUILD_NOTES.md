@@ -100,6 +100,14 @@ Ryubing's upstream config version was 73 when the original work started.
     Still to do: rename projects/namespaces/assembly from Ryujinx, remove unused platforms and features.
 30. GitHub (github.com/Shredder565/SuperSwitch) is a one-way copy of the source: changes are pushed there as they are written.
     The PC never downloads from GitHub; the launcher has no pull step (one was added and removed on 2026-11-09).
+31. Independence, stage 2 (2026-11-09): the code is renamed from Ryujinx to SuperSwitch. Every project, folder, namespace,
+    assembly and resource path now starts with SuperSwitch (src/SuperSwitch is the app, src/SuperSwitch.HLE etc. the libraries);
+    the program file is a real SuperSwitch.exe (the old copy-the-app-host step is gone). Paths in the items above that say
+    src/Ryujinx... now read src/SuperSwitch....
+    Deliberately NOT renamed: the NuGet packages SuperSwitch still depends on (Ryujinx.LibHac, Ryujinx.SDL3-CS,
+    Ryujinx.Audio.OpenAL, Ryujinx.Graphics.Nvdec.Dependencies.AllArch, Ryujinx.Graphics.Vulkan.MoltenVK, Ryujinx.UpdateClient,
+    Ryujinx.Systems.Update.Common and its namespace), web addresses, the distribution/ folder, ARMeilleure and Spv.Generator,
+    LICENSE.txt and the credit in README/About. The tag `before-rename` marks the last commit with the old names.
 
 ## Restoring after a reformat
 Copy the newest folder inside "SuperSwitch Source Backup" on OneDrive to Documents\SuperSwitch, install the .NET 10 SDK

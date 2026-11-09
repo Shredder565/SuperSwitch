@@ -1,7 +1,7 @@
 using ARMeilleure.CodeGen.RegisterAllocators;
 using ARMeilleure.IntermediateRepresentation;
 using Microsoft.IO;
-using Ryujinx.Common.Memory;
+using SuperSwitch.Common.Memory;
 using System.Numerics;
 
 namespace ARMeilleure.CodeGen.X86

@@ -1,0 +1,14 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <DefaultItemExcludes>$(DefaultItemExcludes);._*</DefaultItemExcludes>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\SuperSwitch.Common\SuperSwitch.Common.csproj" />
+    <ProjectReference Include="..\SuperSwitch.Cpu\SuperSwitch.Cpu.csproj" />
+    <ProjectReference Include="..\SuperSwitch.Memory\SuperSwitch.Memory.csproj" />
+  </ItemGroup>
+
+</Project>

@@ -8,7 +8,7 @@
     <ImplicitUsings>disable</ImplicitUsings>
     <AssemblyName>SuperSwitchVideoConverter</AssemblyName>
     <RootNamespace>SuperSwitch.VideoConverter</RootNamespace>
-    <ApplicationIcon>..\..\src\Ryujinx\Ryujinx.ico</ApplicationIcon>
+    <ApplicationIcon>..\..\src\SuperSwitch\SuperSwitch.ico</ApplicationIcon>
     <!-- Standalone tool: don't inherit SuperSwitch/Ryubing build and package settings. -->
     <ManagePackageVersionsCentrally>false</ManagePackageVersionsCentrally>
     <TreatWarningsAsErrors>false</TreatWarningsAsErrors>

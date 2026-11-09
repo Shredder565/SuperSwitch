@@ -8,7 +8,7 @@ using ARMeilleure.Memory;
 using ARMeilleure.State;
 using ARMeilleure.Translation.Cache;
 using ARMeilleure.Translation.PTC;
-using Ryujinx.Common;
+using SuperSwitch.Common;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -247,7 +247,7 @@ namespace ARMeilleure.Translation
 
         internal TranslatedFunction Translate(ulong address, ExecutionMode mode, bool highCq, bool singleStep = false, bool pptcTranslation = false)
         {
-            long stallStart = Ryujinx.Common.StallProfiler.Begin();
+            long stallStart = SuperSwitch.Common.StallProfiler.Begin();
 
             try
             {
@@ -255,7 +255,7 @@ namespace ARMeilleure.Translation
             }
             finally
             {
-                Ryujinx.Common.StallProfiler.End(Ryujinx.Common.StallProfiler.Category.GuestCodeTranslation, stallStart);
+                SuperSwitch.Common.StallProfiler.End(SuperSwitch.Common.StallProfiler.Category.GuestCodeTranslation, stallStart);
             }
         }
 

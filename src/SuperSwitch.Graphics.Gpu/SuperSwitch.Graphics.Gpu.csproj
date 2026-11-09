@@ -1,0 +1,17 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <DefaultItemExcludes>$(DefaultItemExcludes);._*</DefaultItemExcludes>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\SuperSwitch.Cpu\SuperSwitch.Cpu.csproj" />
+    <ProjectReference Include="..\SuperSwitch.Graphics.Device\SuperSwitch.Graphics.Device.csproj" />
+    <ProjectReference Include="..\SuperSwitch.Graphics.GAL\SuperSwitch.Graphics.GAL.csproj" />
+    <ProjectReference Include="..\SuperSwitch.Common\SuperSwitch.Common.csproj" />
+    <ProjectReference Include="..\SuperSwitch.Graphics.Texture\SuperSwitch.Graphics.Texture.csproj" />
+    <ProjectReference Include="..\SuperSwitch.Graphics.Shader\SuperSwitch.Graphics.Shader.csproj" />
+  </ItemGroup>
+
+</Project>

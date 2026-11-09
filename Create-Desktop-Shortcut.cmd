@@ -4,7 +4,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -Command ^
   "$s=(New-Object -ComObject WScript.Shell).CreateShortcut([IO.Path]::Combine([Environment]::GetFolderPath('Desktop'),'SuperSwitch.lnk'));" ^
   "$s.TargetPath='%~dp0SuperSwitch.cmd';" ^
   "$s.WorkingDirectory='%~dp0';" ^
-  "$s.IconLocation='%~dp0src\Ryujinx\Ryujinx.ico';" ^
+  "$s.IconLocation='%~dp0src\SuperSwitch\SuperSwitch.ico';" ^
   "$s.WindowStyle=1;" ^
   "$s.Description='Build (if needed) and start SuperSwitch';" ^
   "$s.Save()"

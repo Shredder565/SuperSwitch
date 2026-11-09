@@ -1,9 +1,9 @@
 using ARMeilleure.State;
 using Humanizer;
 using Microsoft.IO;
-using Ryujinx.Common;
-using Ryujinx.Common.Logging;
-using Ryujinx.Common.Memory;
+using SuperSwitch.Common;
+using SuperSwitch.Common.Logging;
+using SuperSwitch.Common.Memory;
 using System;
 using System.Buffers.Binary;
 using System.Collections.Concurrent;

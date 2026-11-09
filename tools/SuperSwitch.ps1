@@ -69,7 +69,7 @@ function Use-LocalLibHac {
 function Invoke-Build {
     Write-Step 'Building SuperSwitch (first build takes a few minutes)'
     "=== Build $(Get-Date)" | Out-File $log -Append
-    dotnet build (Join-Path $root 'src\Ryujinx\Ryujinx.csproj') -c Release -o $buildDir 2>&1 | Tee-Object -FilePath $log -Append | Out-Host
+    dotnet build (Join-Path $root 'src\SuperSwitch\SuperSwitch.csproj') -c Release -o $buildDir 2>&1 | Tee-Object -FilePath $log -Append | Out-Host
     return $LASTEXITCODE
 }
 

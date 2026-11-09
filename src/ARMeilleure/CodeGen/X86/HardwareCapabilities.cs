@@ -1,4 +1,4 @@
-using Ryujinx.Memory;
+using SuperSwitch.Memory;
 using System;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics.X86;

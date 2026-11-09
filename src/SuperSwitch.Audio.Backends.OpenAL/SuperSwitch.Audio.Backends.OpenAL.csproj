@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <DefaultItemExcludes>$(DefaultItemExcludes);._*</DefaultItemExcludes>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="OpenTK.Audio.OpenAL" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\SuperSwitch.Audio\SuperSwitch.Audio.csproj" />
+  </ItemGroup>
+
+</Project>
