@@ -271,13 +271,14 @@
                     Name="CompatibilityListMenuItem"
                     Header="{ext:Locale CompatibilityListOpen}"
                     Icon="{ext:Icon fa-solid fa-database}"/>
+                <!-- SuperSwitch: the Ryubing online-play list, wiki guides and updater stay in the code but are not shown. -->
                 <MenuItem
                     Name="LdnGameListMenuItem"
+                    IsVisible="False"
                     Header="{ext:Locale LdnGameListOpen}"
                     Icon="{ext:Icon fa-solid fa-people-group}"
                     IsEnabled="{Binding IsRyuLdnEnabled}"/>
-                <Separator />
-                <MenuItem VerticalAlignment="Center" Header="{ext:Locale MenuBarHelpFaqAndGuides}" Icon="{ext:Icon fa-solid fa-question}" >
+                <MenuItem IsVisible="False" VerticalAlignment="Center" Header="{ext:Locale MenuBarHelpFaqAndGuides}" Icon="{ext:Icon fa-solid fa-question}" >
                     <MenuItem
                         Name="SetupGuideMenuItem"
                         Header="{ext:Locale MenuBarHelpSetup}"
@@ -294,9 +295,9 @@
                         Icon="{ext:Icon fa-solid fa-circle-info}"
                         CommandParameter="{x:Static common:SharedConstants.FaqWikiUrl}" />
                 </MenuItem>
-                <Separator />
                 <MenuItem
                     Name="UpdateMenuItem"
+                    IsVisible="False"
                     IsEnabled="{Binding CanUpdate}"
                     Header="{ext:Locale MenuBarHelpCheckForUpdates}"
                     Icon="{ext:Icon fa-solid fa-rotate}" />

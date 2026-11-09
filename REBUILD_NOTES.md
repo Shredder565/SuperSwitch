@@ -94,6 +94,10 @@ Ryubing's upstream config version was 73 when the original work started.
     The home screen and quick menu use the same 0.5 threshold, for either stick.
 28. SuperSwitch look across the app: fixed violet accent (#8B96FF, FluentAvaloniaTheme.CustomAccentColor), blue-black dark palette
     in Assets/Styles/Themes.xaml (Dark dictionary only), Ryujinx logo hidden, window titles say SuperSwitch, Settings has a title.
+29. Independence, stage 1 (identity and housekeeping): README rewritten for SuperSwitch (with credit and license), upstream-only
+    files removed (.forgejo CI, crowdin.yml, CONTRIBUTING/CHANGELOG/COMPILING, docs guides), solution renamed to SuperSwitch.sln,
+    Ryubing's online-play list, wiki guides and update check hidden from the Help menu.
+    Still to do: rename projects/namespaces/assembly from Ryujinx, remove unused platforms and features.
 
 ## Restoring after a reformat
 Copy the newest folder inside "SuperSwitch Source Backup" on OneDrive to Documents\SuperSwitch, install the .NET 10 SDK
