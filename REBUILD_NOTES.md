@@ -107,7 +107,7 @@ Ryubing's upstream config version was 73 when the original work started.
     Deliberately NOT renamed: the NuGet packages SuperSwitch still depends on (Ryujinx.LibHac, Ryujinx.SDL3-CS,
     Ryujinx.Audio.OpenAL, Ryujinx.Graphics.Nvdec.Dependencies.AllArch, Ryujinx.Graphics.Vulkan.MoltenVK, Ryujinx.UpdateClient,
     Ryujinx.Systems.Update.Common and its namespace), web addresses, the distribution/ folder, ARMeilleure and Spv.Generator,
-    LICENSE.txt and the credit in README/About. The tag `before-rename` marks the last commit with the old names.
+    LICENSE.txt and the credit in README/About. Commit 15c7dad is the last one with the old names.
 
 ## Restoring after a reformat
 Copy the newest folder inside "SuperSwitch Source Backup" on OneDrive to Documents\SuperSwitch, install the .NET 10 SDK
