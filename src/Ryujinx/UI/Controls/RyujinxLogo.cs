@@ -22,7 +22,8 @@ namespace Ryujinx.Ava.UI.Controls
             Height = 25;
             Width = 25;
             Source = Bitmap;
-            IsVisible = !ConfigurationState.Instance.ShowOldUI;
+            // SuperSwitch: the Ryujinx logo is no longer shown in window headers and the menu bar.
+            IsVisible = false;
         }
     }
 }

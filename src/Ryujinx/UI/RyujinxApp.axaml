@@ -15,7 +15,8 @@
         </ResourceDictionary>
     </Application.Resources>
     <Application.Styles>
-        <sty:FluentAvaloniaTheme PreferUserAccentColor="True" PreferSystemTheme="False" />
+        <!-- SuperSwitch: one fixed accent colour (the violet of the home screen) instead of the Windows accent colour. -->
+        <sty:FluentAvaloniaTheme PreferUserAccentColor="False" PreferSystemTheme="False" CustomAccentColor="#8B96FF" />
         <StyleInclude Source="/Assets/Styles/Styles.xaml" />
     </Application.Styles>
     <NativeMenu.Menu>

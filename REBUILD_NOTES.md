@@ -92,6 +92,8 @@ Ryubing's upstream config version was 73 when the original work started.
     A chooses, B resumes. Escape no longer leaves full screen or asks to exit directly while a game runs.
 27. Stick deadzone: both sticks default to 0.50 (InputConfigDefaults) and config v85 sets every controller profile to 0.50.
     The home screen and quick menu use the same 0.5 threshold, for either stick.
+28. SuperSwitch look across the app: fixed violet accent (#8B96FF, FluentAvaloniaTheme.CustomAccentColor), blue-black dark palette
+    in Assets/Styles/Themes.xaml (Dark dictionary only), Ryujinx logo hidden, window titles say SuperSwitch, Settings has a title.
 
 ## Restoring after a reformat
 Copy the newest folder inside "SuperSwitch Source Backup" on OneDrive to Documents\SuperSwitch, install the .NET 10 SDK

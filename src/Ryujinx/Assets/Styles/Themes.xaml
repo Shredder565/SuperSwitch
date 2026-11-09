@@ -42,14 +42,27 @@
             <Color x:Key="CustomConfig">#00B5B8</Color>
         </ResourceDictionary>
         <ResourceDictionary x:Key="Dark">
+            <!-- SuperSwitch dark palette: the blue-black of the console home screen, used by every window and dialog. -->
             <SolidColorBrush x:Key="DataGridSelectionBackgroundBrush"
                              Color="{DynamicResource DataGridSelectionColor}" />
-            <Color x:Key="ControlFillColorSecondary">#008AA8</Color>
-            <Color x:Key="DataGridSelectionColor">#FF00FABB</Color>
-            <Color x:Key="ThemeContentBackgroundColor">#FF2D2D2D</Color>
-            <Color x:Key="ThemeControlBorderColor">#FF505050</Color>
+            <Color x:Key="ControlFillColorSecondary">#2A3140</Color>
+            <Color x:Key="DataGridSelectionColor">#FF8B96FF</Color>
+            <Color x:Key="ThemeContentBackgroundColor">#FF151A22</Color>
+            <Color x:Key="ThemeControlBorderColor">#FF2A3140</Color>
             <Color x:Key="ThemeForegroundColor">#FFFFFFFF</Color>
-            <Color x:Key="MenuFlyoutPresenterBorderColor">#3D3D3D</Color>
+            <Color x:Key="MenuFlyoutPresenterBorderColor">#2A3140</Color>
+            <!-- Window, page, dialog and card backgrounds of the Fluent theme. -->
+            <Color x:Key="SolidBackgroundFillColorBase">#0F1218</Color>
+            <Color x:Key="SolidBackgroundFillColorBaseAlt">#0B0D12</Color>
+            <Color x:Key="SolidBackgroundFillColorSecondary">#151A22</Color>
+            <Color x:Key="SolidBackgroundFillColorTertiary">#1A1F29</Color>
+            <Color x:Key="SolidBackgroundFillColorQuarternary">#1F2531</Color>
+            <SolidColorBrush x:Key="SolidBackgroundFillColorBaseBrush" Color="#0F1218" />
+            <SolidColorBrush x:Key="SolidBackgroundFillColorBaseAltBrush" Color="#0B0D12" />
+            <SolidColorBrush x:Key="SolidBackgroundFillColorSecondaryBrush" Color="#151A22" />
+            <SolidColorBrush x:Key="SolidBackgroundFillColorTertiaryBrush" Color="#1A1F29" />
+            <SolidColorBrush x:Key="SolidBackgroundFillColorQuarternaryBrush" Color="#1F2531" />
+            <SolidColorBrush x:Key="ApplicationPageBackgroundThemeBrush" Color="#0F1218" />
             <Color x:Key="AppListBackgroundColor">#0FFFFFFF</Color>
             <Color x:Key="AppListHoverBackgroundColor">#1EFFFFFF</Color>
             <Color x:Key="WarningBackgroundColor">#FF6347</Color>

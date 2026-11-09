@@ -30,6 +30,12 @@
                 VerticalAlignment="Top"
                 Margin="7, 7, 7, 0"
                 ToolTip.Tip="{ext:WindowTitle Settings}"/>
+            <TextBlock
+                Margin="24,18,0,10"
+                VerticalAlignment="Center"
+                FontSize="24"
+                FontWeight="Bold"
+                Text="Settings" />
         </StackPanel>
         <ContentPresenter
             x:Name="ContentPresenter"
