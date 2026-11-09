@@ -17,7 +17,7 @@ namespace Ryujinx.Ava.Systems.Configuration
         /// <summary>
         /// The current version of the file format
         /// </summary>
-        public const int CurrentVersion = 83;
+        public const int CurrentVersion = 84;
 
         /// <summary>
         /// Version of the configuration file format
@@ -415,6 +415,11 @@ namespace Ryujinx.Ava.Systems.Configuration
         /// Show application name in Grid Mode // Not Used
         /// </summary>
         public bool ShowNames { get; set; }
+
+        /// <summary>
+        /// SuperSwitch: show the console-style home screen instead of the classic game list/grid
+        /// </summary>
+        public bool UseConsoleHome { get; set; }
 
         /// <summary>
         /// Sets App Icon Size // Not Used

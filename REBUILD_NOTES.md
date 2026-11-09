@@ -84,7 +84,9 @@ Ryubing's upstream config version was 73 when the original work started.
 25. Console home screen (2026-11-09): UI/Views/Misc/ConsoleHomeView replaces the classic list/grid by default (dark, selected game
     shown large, one row of game tiles, Play / Game options, top-right Recordings / Settings / Menu / Full screen).
     "Menu" shows the classic menu bar and status bar; File > "Switch between console home and classic library" goes back.
-    The choice is not saved yet (console home on every start). No controller navigation in the home screen yet (keyboard and mouse).
+    Second pass: all games as a wrapping tile grid, most recently played first (ConsoleAppsList), selected game in a bar at
+    the bottom. Controller navigation (D-pad/left stick move, A play, X game options, + settings) polled by the view itself.
+    Chips show auto-record and the connected controller. The console/classic choice is saved (config v84, UI.UseConsoleHome).
 
 ## Restoring after a reformat
 Copy the newest folder inside "SuperSwitch Source Backup" on OneDrive to Documents\SuperSwitch, install the .NET 10 SDK

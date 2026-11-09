@@ -177,6 +177,11 @@ namespace Ryujinx.Ava.Systems.Configuration
             public ReactiveObject<bool> ShowNames { get; private set; }
 
             /// <summary>
+            /// SuperSwitch: show the console-style home screen instead of the classic game list/grid
+            /// </summary>
+            public ReactiveObject<bool> UseConsoleHome { get; private set; }
+
+            /// <summary>
             /// Sets App Icon Size in Grid Mode
             /// </summary>
             public ReactiveObject<int> GridSize { get; private set; }
@@ -214,6 +219,7 @@ namespace Ryujinx.Ava.Systems.Configuration
                 StartNoUI = new ReactiveObject<bool>();
                 GameListViewMode = new ReactiveObject<int>();
                 ShowNames = new ReactiveObject<bool>();
+                UseConsoleHome = new ReactiveObject<bool>();
                 GridSize = new ReactiveObject<int>();
                 ApplicationSort = new ReactiveObject<int>();
                 IsAscendingOrder = new ReactiveObject<bool>();

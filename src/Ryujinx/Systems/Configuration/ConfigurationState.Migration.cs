@@ -149,6 +149,7 @@ namespace Ryujinx.Ava.Systems.Configuration
             UI.BaseStyle.Value = shouldLoadFromFile ? cff.BaseStyle : UI.BaseStyle.Value;
             UI.GameListViewMode.Value = shouldLoadFromFile ? cff.GameListViewMode : UI.GameListViewMode.Value;
             UI.ShowNames.Value = shouldLoadFromFile ? cff.ShowNames : UI.ShowNames.Value;
+            UI.UseConsoleHome.Value = shouldLoadFromFile ? cff.UseConsoleHome : UI.UseConsoleHome.Value;
             UI.IsAscendingOrder.Value = shouldLoadFromFile ? cff.IsAscendingOrder : UI.IsAscendingOrder.Value;
             UI.GridSize.Value = shouldLoadFromFile ? cff.GridSize : UI.GridSize.Value;
             UI.ApplicationSort.Value = shouldLoadFromFile ? cff.ApplicationSort : UI.ApplicationSort.Value;
@@ -617,7 +618,9 @@ namespace Ryujinx.Ava.Systems.Configuration
                 // Faster level loading: skip hashing every file read (only useful to detect corrupted game dumps).
                 (82, static cff => cff.EnableFsIntegrityChecks = false),
                 // Remaining shader stutter came from draws inside occlusion queries: compile those in the background too.
-                (83, static cff => cff.EnableAsyncDuringOcclusionQueries = true)
+                (83, static cff => cff.EnableAsyncDuringOcclusionQueries = true),
+                // The console home screen is the default look; the classic library stays one menu click away.
+                (84, static cff => cff.UseConsoleHome = true)
             );
     }
 }

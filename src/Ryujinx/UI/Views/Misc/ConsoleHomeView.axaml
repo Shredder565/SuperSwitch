@@ -11,7 +11,7 @@
     Focusable="True"
     mc:Ignorable="d"
     x:DataType="viewModels:MainWindowViewModel">
-    <!-- SuperSwitch: console-style home screen. The game played is picked from one row of large tiles;
+    <!-- SuperSwitch: console-style home screen. Every game is a large tile (most recently played first);
          everything else (settings, recordings, the full menu) is reached from the buttons at the top right. -->
     <UserControl.Styles>
         <Style Selector="Button.home">
@@ -40,12 +40,18 @@
             <Setter Property="FontSize" Value="14" />
             <Setter Property="VerticalAlignment" Value="Center" />
         </Style>
+        <Style Selector="Border.chip">
+            <Setter Property="Background" Value="#1A1F29" />
+            <Setter Property="CornerRadius" Value="22" />
+            <Setter Property="Padding" Value="16,0" />
+            <Setter Property="MinHeight" Value="44" />
+        </Style>
     </UserControl.Styles>
     <!-- Always dark, whatever theme the rest of the app uses, so the list and buttons match the dark background. -->
     <ThemeVariantScope RequestedThemeVariant="Dark">
-    <Grid Background="#0F1218" RowDefinitions="Auto,Auto,*,Auto">
+    <Grid Background="#0F1218" RowDefinitions="Auto,*,Auto,Auto">
         <!-- Top bar -->
-        <DockPanel Grid.Row="0" Margin="48,24,48,0" LastChildFill="False">
+        <DockPanel Grid.Row="0" Margin="48,24,48,16" LastChildFill="False">
             <TextBlock
                 DockPanel.Dock="Left"
                 VerticalAlignment="Center"
@@ -54,67 +60,34 @@
                 Foreground="#E8EAF0"
                 Text="SuperSwitch" />
             <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="10">
+                <Border Classes="chip">
+                    <TextBlock Name="AutoRecordChip" Classes="hint" Text="Auto-record off" />
+                </Border>
+                <Border Classes="chip">
+                    <TextBlock Name="ControllerChip" Classes="hint" Text="No controller" />
+                </Border>
                 <Button Classes="home" Command="{Binding OpenRecordingsFolder}" Content="Recordings" />
                 <Button Classes="home" Click="Settings_Click" Content="Settings" />
                 <Button Classes="home" Command="{Binding ToggleConsoleMenu}" Content="Menu" ToolTip.Tip="Show or hide the full menu bar" />
                 <Button Classes="home" Command="{Binding ToggleFullscreen}" Content="Full screen" />
             </StackPanel>
         </DockPanel>
-        <!-- Selected game -->
-        <Grid Grid.Row="1" Margin="48,32,48,24" ColumnDefinitions="Auto,*">
-            <Border
-                Grid.Column="0"
-                Width="260"
-                Height="260"
-                Background="#1A1F29"
-                ClipToBounds="True"
-                CornerRadius="20">
-                <Image
-                    Source="{Binding ConsoleSelectedApplication.Icon, Converter={x:Static helpers:BitmapArrayValueConverter.Instance}}"
-                    Stretch="UniformToFill" />
-            </Border>
-            <StackPanel Grid.Column="1" Margin="44,0,0,0" VerticalAlignment="Center" Spacing="14">
-                <TextBlock
-                    FontSize="14"
-                    FontWeight="SemiBold"
-                    Foreground="#8B96FF"
-                    Text="READY TO PLAY" />
-                <TextBlock
-                    FontSize="52"
-                    FontWeight="Bold"
-                    Foreground="#FFFFFF"
-                    MaxLines="2"
-                    Text="{Binding ConsoleSelectedApplication.Name, FallbackValue='Add a games folder in Settings', TargetNullValue='Add a games folder in Settings'}"
-                    TextTrimming="CharacterEllipsis"
-                    TextWrapping="Wrap" />
-                <TextBlock
-                    FontSize="16"
-                    Foreground="#B4BCCB"
-                    Text="{Binding ConsoleSelectedApplication.TimePlayedString, StringFormat='Time played: {0}'}" />
-                <StackPanel Margin="0,10,0,0" Orientation="Horizontal" Spacing="14">
-                    <Button Classes="play" Click="Play_Click" Content="Play" />
-                    <Button Classes="home" MinHeight="52" Click="GameOptions_Click" Content="Game options" />
-                </StackPanel>
-            </StackPanel>
-        </Grid>
-        <!-- All games, one row -->
+        <!-- Every game as a tile, most recently played first -->
         <ListBox
             Name="GameList"
-            Grid.Row="2"
+            Grid.Row="1"
             Margin="36,0"
-            VerticalAlignment="Top"
             Background="Transparent"
             ContextFlyout="{Binding GridAppContextMenu}"
             DoubleTapped="GameList_DoubleTapped"
-            ItemsSource="{Binding AppsObservableList}"
+            ItemsSource="{Binding ConsoleAppsList}"
             KeyDown="GameList_KeyDown"
-            ScrollViewer.HorizontalScrollBarVisibility="Auto"
-            ScrollViewer.VerticalScrollBarVisibility="Disabled"
+            ScrollViewer.HorizontalScrollBarVisibility="Disabled"
             SelectedItem="{Binding ConsoleSelectedApplication}"
             SelectionMode="Single,AlwaysSelected">
             <ListBox.ItemsPanel>
                 <ItemsPanelTemplate>
-                    <StackPanel Orientation="Horizontal" />
+                    <WrapPanel Orientation="Horizontal" />
                 </ItemsPanelTemplate>
             </ListBox.ItemsPanel>
             <ListBox.Styles>
@@ -142,6 +115,7 @@
                                 IsVisible="{Binding $parent[ListBoxItem].IsSelected}" />
                         </Panel>
                         <TextBlock
+                            Height="38"
                             FontSize="14"
                             Foreground="#E8EAF0"
                             MaxLines="2"
@@ -153,14 +127,46 @@
                 </DataTemplate>
             </ListBox.ItemTemplate>
         </ListBox>
-        <!-- Key hints -->
-        <Border Grid.Row="3" Padding="48,14" BorderBrush="#222835" BorderThickness="0,1,0,0">
+        <!-- Selected game -->
+        <Border Grid.Row="2" Padding="48,16" Background="#151A22">
+            <Grid ColumnDefinitions="Auto,*,Auto">
+                <Border
+                    Grid.Column="0"
+                    Width="72"
+                    Height="72"
+                    Background="#1A1F29"
+                    ClipToBounds="True"
+                    CornerRadius="12">
+                    <Image
+                        Source="{Binding ConsoleSelectedApplication.Icon, Converter={x:Static helpers:BitmapArrayValueConverter.Instance}}"
+                        Stretch="UniformToFill" />
+                </Border>
+                <StackPanel Grid.Column="1" Margin="20,0" VerticalAlignment="Center" Spacing="4">
+                    <TextBlock
+                        FontSize="26"
+                        FontWeight="Bold"
+                        Foreground="#FFFFFF"
+                        Text="{Binding ConsoleSelectedApplication.Name, FallbackValue='Add a games folder in Settings', TargetNullValue='Add a games folder in Settings'}"
+                        TextTrimming="CharacterEllipsis" />
+                    <TextBlock
+                        FontSize="14"
+                        Foreground="#B4BCCB"
+                        Text="{Binding ConsoleSelectedApplication.TimePlayedString, StringFormat='Time played: {0}'}" />
+                </StackPanel>
+                <StackPanel Grid.Column="2" VerticalAlignment="Center" Orientation="Horizontal" Spacing="14">
+                    <Button Name="GameOptionsButton" Classes="home" MinHeight="52" Click="GameOptions_Click" Content="Game options" />
+                    <Button Classes="play" Click="Play_Click" Content="Play" />
+                </StackPanel>
+            </Grid>
+        </Border>
+        <!-- Key and controller hints -->
+        <Border Grid.Row="3" Padding="48,12" BorderBrush="#222835" BorderThickness="0,1,0,0">
             <StackPanel HorizontalAlignment="Right" Orientation="Horizontal" Spacing="28">
-                <TextBlock Classes="hint" Text="Enter  Play" />
-                <TextBlock Classes="hint" Text="Left / Right  Choose game" />
+                <TextBlock Classes="hint" Text="A / Enter  Play" />
+                <TextBlock Classes="hint" Text="D-pad / Arrows  Choose game" />
+                <TextBlock Classes="hint" Text="X  Game options" />
+                <TextBlock Classes="hint" Text="+  Settings" />
                 <TextBlock Classes="hint" Text="F11  Full screen" />
-                <TextBlock Classes="hint" Text="F7  Record" />
-                <TextBlock Classes="hint" Text="F6  Save replay" />
             </StackPanel>
         </Border>
     </Grid>

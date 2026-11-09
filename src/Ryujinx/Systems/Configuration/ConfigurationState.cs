@@ -141,6 +141,7 @@ namespace Ryujinx.Ava.Systems.Configuration
                 BaseStyle = UI.BaseStyle,
                 GameListViewMode = UI.GameListViewMode,
                 ShowNames = UI.ShowNames,
+                UseConsoleHome = UI.UseConsoleHome,
                 GridSize = UI.GridSize,
                 ApplicationSort = UI.ApplicationSort,
                 IsAscendingOrder = UI.IsAscendingOrder,
@@ -270,6 +271,7 @@ namespace Ryujinx.Ava.Systems.Configuration
             UI.BaseStyle.Value = "Dark";
             UI.GameListViewMode.Value = 0;
             UI.ShowNames.Value = true;
+            UI.UseConsoleHome.Value = true;
             UI.GridSize.Value = 2;
             UI.ApplicationSort.Value = 0;
             UI.IsAscendingOrder.Value = true;

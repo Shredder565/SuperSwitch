@@ -222,6 +222,12 @@ namespace Ryujinx.Ava.UI.ViewModels
                 .Bind(out _appsObservableList)
                 .Subscribe();
 
+            Applications.ToObservableChangeSet()
+                .Filter(Filter)
+                .Sort(ConsoleHomeComparer)
+                .Bind(out _consoleAppsList)
+                .Subscribe();
+
             _rendererWaitEvent = new AutoResetEvent(false);
 
             LocaleManager.Instance.PropertyChanged += (sender, args) =>
@@ -342,21 +348,43 @@ namespace Ryujinx.Ava.UI.ViewModels
 
         // ---- SuperSwitch console home ----
 
-        private bool _isConsoleHome = true;
         private bool _isConsoleMenuOpen;
+        private ReadOnlyObservableCollection<ApplicationData> _consoleAppsList;
+
+        /// <summary>
+        /// The games shown on the console home screen: the same (filtered) library, most recently played first.
+        /// </summary>
+        public ReadOnlyObservableCollection<ApplicationData> ConsoleAppsList
+        {
+            get => _consoleAppsList;
+            private set
+            {
+                _consoleAppsList = value;
+
+                OnPropertyChanged();
+            }
+        }
+
+        private static IComparer<ApplicationData> ConsoleHomeComparer =>
+            SortExpressionComparer<ApplicationData>
+                .Descending(app => app.LastPlayed ?? DateTime.UnixEpoch)
+                .ThenByAscending(app => app.Name);
 
         /// <summary>
         /// True when the console-style home screen replaces the classic game list/grid.
         /// </summary>
         public bool IsConsoleHome
         {
-            get => _isConsoleHome;
+            get => ConfigurationState.Instance.UI.UseConsoleHome.Value;
             set
             {
-                _isConsoleHome = value;
+                ConfigurationState.Instance.UI.UseConsoleHome.Value = value;
 
                 OnPropertyChanged();
                 NotifyConsoleHomeLayoutChanged();
+
+                // Remembered for the next start.
+                ConfigurationState.Instance.ToFileFormat().SaveConfig(Program.ConfigurationPath);
             }
         }
 
@@ -1078,6 +1106,14 @@ namespace Ryujinx.Ava.UI.ViewModels
                 .AsObservableList();
 
             AppsObservableList = apps;
+
+            Applications.ToObservableChangeSet()
+                .Filter(Filter)
+                .Sort(ConsoleHomeComparer)
+                .Bind(out ReadOnlyObservableCollection<ApplicationData> consoleApps)
+                .AsObservableList();
+
+            ConsoleAppsList = consoleApps;
         }
 
         private bool Filter(object arg)
