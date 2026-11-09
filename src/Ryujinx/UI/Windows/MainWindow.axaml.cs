@@ -217,6 +217,11 @@ namespace Ryujinx.Ava.UI.Windows
             }
         }
 
+        /// <summary>
+        /// SuperSwitch: opens the settings window from the console home screen (same as Options > Settings).
+        /// </summary>
+        public Task OpenSettingsFromHome() => MenuBarView.OpenSettings();
+
         public async void Application_Opened(object sender, ApplicationOpenedEventArgs args)
         {
             if (args.Application != null)

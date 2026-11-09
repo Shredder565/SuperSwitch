@@ -81,6 +81,10 @@ Ryubing's upstream config version was 73 when the original work started.
     - Recorder audio: every audio stream the game plays is mixed into the recording (audio renderer sessions via HardwareDeviceImpl,
       direct audout via AudioDeviceSession.FlushToHardware). Before, only the first stream seen was recorded, so a game whose
       first stream is silent got a silent recording (Luigi's Mansion 2 HD). The log lists each stream and its peak level at the end.
+25. Console home screen (2026-11-09): UI/Views/Misc/ConsoleHomeView replaces the classic list/grid by default (dark, selected game
+    shown large, one row of game tiles, Play / Game options, top-right Recordings / Settings / Menu / Full screen).
+    "Menu" shows the classic menu bar and status bar; File > "Switch between console home and classic library" goes back.
+    The choice is not saved yet (console home on every start). No controller navigation in the home screen yet (keyboard and mouse).
 
 ## Restoring after a reformat
 Copy the newest folder inside "SuperSwitch Source Backup" on OneDrive to Documents\SuperSwitch, install the .NET 10 SDK

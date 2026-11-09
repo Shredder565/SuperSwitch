@@ -340,6 +340,113 @@ namespace Ryujinx.Ava.UI.ViewModels
 
         public bool EnableNonGameRunningControls => !IsGameRunning;
 
+        // ---- SuperSwitch console home ----
+
+        private bool _isConsoleHome = true;
+        private bool _isConsoleMenuOpen;
+
+        /// <summary>
+        /// True when the console-style home screen replaces the classic game list/grid.
+        /// </summary>
+        public bool IsConsoleHome
+        {
+            get => _isConsoleHome;
+            set
+            {
+                _isConsoleHome = value;
+
+                OnPropertyChanged();
+                NotifyConsoleHomeLayoutChanged();
+            }
+        }
+
+        /// <summary>
+        /// True when the full menu bar and status bar are shown on top of the console home screen.
+        /// </summary>
+        public bool IsConsoleMenuOpen
+        {
+            get => _isConsoleMenuOpen;
+            set
+            {
+                _isConsoleMenuOpen = value;
+
+                OnPropertyChanged();
+                NotifyConsoleHomeLayoutChanged();
+            }
+        }
+
+        /// <summary>
+        /// The menu bar and status bar belong to the classic layout: always there in classic mode and while a game
+        /// runs, and on the console home screen only when asked for with its Menu button.
+        /// </summary>
+        public bool ShowClassicChrome => !IsConsoleHome || IsConsoleMenuOpen || IsGameRunning;
+
+        public bool ShowMenuBar => ShowMenuAndStatusBar && ShowClassicChrome;
+
+        public bool ShowClassicLibrary => !IsConsoleHome;
+
+        public bool ShowClassicList => IsList && !IsConsoleHome;
+
+        public bool ShowClassicGrid => IsGrid && !IsConsoleHome;
+
+        private void NotifyConsoleHomeLayoutChanged()
+        {
+            OnPropertyChanged(nameof(ShowClassicChrome));
+            OnPropertyChanged(nameof(ShowMenuBar));
+            OnPropertyChanged(nameof(ShowClassicLibrary));
+            OnPropertyChanged(nameof(ShowClassicList));
+            OnPropertyChanged(nameof(ShowClassicGrid));
+        }
+
+        partial void OnShowMenuAndStatusBarChanged(bool value) => OnPropertyChanged(nameof(ShowMenuBar));
+
+        /// <summary>
+        /// The game selected on the console home screen. Kept in step with the classic list and grid selection,
+        /// so the per-game menu and commands act on the same game whichever view is showing.
+        /// </summary>
+        public ApplicationData ConsoleSelectedApplication
+        {
+            get => GridSelectedApplication;
+            set
+            {
+                if (ReferenceEquals(value, GridSelectedApplication) && ReferenceEquals(value, ListSelectedApplication))
+                {
+                    return;
+                }
+
+                SelectedApplication = value;
+            }
+        }
+
+        public void ToggleConsoleMenu() => IsConsoleMenuOpen = !IsConsoleMenuOpen;
+
+        public void ToggleConsoleHome()
+        {
+            IsConsoleMenuOpen = false;
+            IsConsoleHome = !IsConsoleHome;
+        }
+
+        /// <summary>
+        /// Opens the folder game recordings and instant replays are saved to (Videos\SuperSwitch).
+        /// </summary>
+        public void OpenRecordingsFolder()
+        {
+            string recordingsDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyVideos), "SuperSwitch");
+
+            try
+            {
+                Directory.CreateDirectory(recordingsDir);
+            }
+            catch (Exception ex)
+            {
+                Logger.Error?.Print(LogClass.Application, $"Failed to create directory at path {recordingsDir}. Error : {ex.GetType().Name}", "Recorder");
+
+                return;
+            }
+
+            OpenHelper.OpenFolder(recordingsDir);
+        }
+
         public bool ShowFirmwareStatus => !ShowLoadProgress;
 
         public bool IsGameRunning
@@ -359,6 +466,7 @@ namespace Ryujinx.Ava.UI.ViewModels
                 OnPropertyChanged(nameof(IsAppletMenuActive));
                 OnPropertyChanged(nameof(StatusBarVisible));
                 OnPropertyChanged(nameof(ShowFirmwareStatus));
+                NotifyConsoleHomeLayoutChanged();
             }
         }
 
@@ -518,6 +626,7 @@ namespace Ryujinx.Ava.UI.ViewModels
                     GridAppContextMenu = null!;
 
                 OnPropertyChanged();
+                OnPropertyChanged(nameof(ConsoleSelectedApplication));
             }
         }
 
@@ -740,6 +849,8 @@ namespace Ryujinx.Ava.UI.ViewModels
                 OnPropertyChanged();
                 OnPropertyChanged(nameof(IsGrid));
                 OnPropertyChanged(nameof(IsList));
+                OnPropertyChanged(nameof(ShowClassicList));
+                OnPropertyChanged(nameof(ShowClassicGrid));
 
                 ConfigurationState.Instance.ToFileFormat().SaveConfig(Program.ConfigurationPath);
             }

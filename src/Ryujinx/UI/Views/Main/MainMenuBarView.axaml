@@ -59,6 +59,9 @@
                     Icon="{ext:Icon fa-solid fa-folder-open}"
                     IsEnabled="{Binding EnableNonGameRunningControls}" />
                 <MenuItem
+                    Command="{Binding ToggleConsoleHome}"
+                    Header="Switch between console home and classic library" />
+                <MenuItem
                     Command="{Binding OpenLogsFolder}"
                     Header="{ext:Locale MenuBar_File_OpenLogsFolderButton}"
                     Icon="{ext:Icon fa-solid fa-folder-closed}" />
