@@ -98,8 +98,8 @@ Ryubing's upstream config version was 73 when the original work started.
     files removed (.forgejo CI, crowdin.yml, CONTRIBUTING/CHANGELOG/COMPILING, docs guides), solution renamed to SuperSwitch.sln,
     Ryubing's online-play list, wiki guides and update check hidden from the Help menu.
     Still to do: rename projects/namespaces/assembly from Ryujinx, remove unused platforms and features.
-30. Launcher pulls from GitHub: when the source folder is a Git checkout, SuperSwitch.ps1 runs `git pull --ff-only` before the
-    "needs build?" check, so changes pushed to github.com/Shredder565/SuperSwitch arrive on the next start.
+30. GitHub (github.com/Shredder565/SuperSwitch) is a one-way copy of the source: changes are pushed there as they are written.
+    The PC never downloads from GitHub; the launcher has no pull step (one was added and removed on 2026-11-09).
 
 ## Restoring after a reformat
 Copy the newest folder inside "SuperSwitch Source Backup" on OneDrive to Documents\SuperSwitch, install the .NET 10 SDK
