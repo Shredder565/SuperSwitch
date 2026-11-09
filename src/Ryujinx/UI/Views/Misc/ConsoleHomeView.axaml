@@ -163,7 +163,7 @@
         <Border Grid.Row="3" Padding="48,12" BorderBrush="#222835" BorderThickness="0,1,0,0">
             <StackPanel HorizontalAlignment="Right" Orientation="Horizontal" Spacing="28">
                 <TextBlock Classes="hint" Text="A / Enter  Play" />
-                <TextBlock Classes="hint" Text="D-pad / Arrows  Choose game" />
+                <TextBlock Classes="hint" Text="D-pad / Sticks / Arrows  Choose game" />
                 <TextBlock Classes="hint" Text="X  Game options" />
                 <TextBlock Classes="hint" Text="+  Settings" />
                 <TextBlock Classes="hint" Text="F11  Full screen" />

@@ -83,8 +83,9 @@ namespace Ryujinx.Input
                 Name = name,
                 PlayerIndex = playerIndex,
                 ControllerType = controllerType,
-                DeadzoneLeft = 0.1f,
-                DeadzoneRight = 0.1f,
+                // SuperSwitch: both sticks ignore the first half of their travel.
+                DeadzoneLeft = 0.5f,
+                DeadzoneRight = 0.5f,
                 RangeLeft = 1.0f,
                 RangeRight = 1.0f,
                 TriggerThreshold = 0.5f,

@@ -620,7 +620,24 @@ namespace Ryujinx.Ava.Systems.Configuration
                 // Remaining shader stutter came from draws inside occlusion queries: compile those in the background too.
                 (83, static cff => cff.EnableAsyncDuringOcclusionQueries = true),
                 // The console home screen is the default look; the classic library stays one menu click away.
-                (84, static cff => cff.UseConsoleHome = true)
+                (84, static cff => cff.UseConsoleHome = true),
+                (85, static cff =>
+                {
+                    // Both analog sticks always use a 0.50 deadzone.
+                    if (cff.InputConfig == null)
+                    {
+                        return;
+                    }
+
+                    foreach (InputConfig config in cff.InputConfig)
+                    {
+                        if (config is StandardControllerInputConfig controller)
+                        {
+                            controller.DeadzoneLeft = 0.5f;
+                            controller.DeadzoneRight = 0.5f;
+                        }
+                    }
+                })
             );
     }
 }

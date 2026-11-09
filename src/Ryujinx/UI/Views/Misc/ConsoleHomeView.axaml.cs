@@ -24,7 +24,7 @@ namespace Ryujinx.Ava.UI.Views.Misc
     {
         // Controller navigation: the home screen polls the connected controllers itself, because the emulator
         // only reads them while a game is running. Polling stops whenever this view is not on screen.
-        private const float StickThreshold = 0.6f;
+        private const float StickThreshold = 0.5f; // Sticks must be pushed at least halfway before they count.
         private static readonly TimeSpan _pollInterval = TimeSpan.FromMilliseconds(33);
         private static readonly long _firstRepeatTicks = Stopwatch.Frequency * 400 / 1000;
         private static readonly long _nextRepeatTicks = Stopwatch.Frequency * 140 / 1000;
@@ -203,6 +203,18 @@ namespace Ryujinx.Ava.UI.Views.Misc
             {
                 GamepadStateSnapshot state = gamepad.GetStateSnapshot();
                 (float stickX, float stickY) = state.GetStick(StickInputId.Left);
+                (float rightX, float rightY) = state.GetStick(StickInputId.Right);
+
+                // Either stick navigates; use whichever is pushed further.
+                if (Math.Abs(rightX) > Math.Abs(stickX))
+                {
+                    stickX = rightX;
+                }
+
+                if (Math.Abs(rightY) > Math.Abs(stickY))
+                {
+                    stickY = rightY;
+                }
 
                 if (direction == MoveDirection.None)
                 {

@@ -457,6 +457,9 @@ namespace Ryujinx.Ava.UI.Windows
 
             ApplicationGrid.ApplicationOpened += Application_Opened;
             ApplicationList.ApplicationOpened += Application_Opened;
+
+            // SuperSwitch: listen for the controller shortcut that opens the in-game quick menu.
+            QuickMenu.Attach(this);
         }
 
         private void SetWindowSizePosition()

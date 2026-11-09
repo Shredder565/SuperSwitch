@@ -87,6 +87,11 @@ Ryubing's upstream config version was 73 when the original work started.
     Second pass: all games as a wrapping tile grid, most recently played first (ConsoleAppsList), selected game in a bar at
     the bottom. Controller navigation (D-pad/left stick move, A play, X game options, + settings) polled by the view itself.
     Chips show auto-record and the connected controller. The console/classic choice is saved (config v84, UI.UseConsoleHome).
+26. In-game quick menu (UI/Helpers/QuickMenu.cs): Escape, or both sticks pressed in (or Guide) on a controller, pauses the game
+    and shows Resume / Start-Stop recording / Save instant replay / Full screen / Settings / Exit game. D-pad or a stick moves,
+    A chooses, B resumes. Escape no longer leaves full screen or asks to exit directly while a game runs.
+27. Stick deadzone: both sticks default to 0.50 (InputConfigDefaults) and config v85 sets every controller profile to 0.50.
+    The home screen and quick menu use the same 0.5 threshold, for either stick.
 
 ## Restoring after a reformat
 Copy the newest folder inside "SuperSwitch Source Backup" on OneDrive to Documents\SuperSwitch, install the .NET 10 SDK

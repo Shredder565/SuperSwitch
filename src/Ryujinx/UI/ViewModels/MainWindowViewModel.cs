@@ -1933,15 +1933,14 @@ namespace Ryujinx.Ava.UI.ViewModels
 
         public async Task ExitCurrentState()
         {
-            if (WindowState is WindowState.FullScreen)
+            if (IsGameRunning)
+            {
+                // SuperSwitch: Escape opens the quick menu (Resume, recording, full screen, Settings, Exit game).
+                await QuickMenu.ShowAsync();
+            }
+            else if (WindowState is WindowState.FullScreen)
             {
                 ToggleFullscreen();
-            }
-            else if (IsGameRunning)
-            {
-                await Task.Delay(100);
-
-                AppHost?.ShowExitPrompt();
             }
         }
 
