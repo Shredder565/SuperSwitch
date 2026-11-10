@@ -108,6 +108,12 @@ Ryubing's upstream config version was 73 when the original work started.
     Ryujinx.Audio.OpenAL, Ryujinx.Graphics.Nvdec.Dependencies.AllArch, Ryujinx.Graphics.Vulkan.MoltenVK, Ryujinx.UpdateClient,
     Ryujinx.Systems.Update.Common and its namespace), web addresses, the distribution/ folder, ARMeilleure and Spv.Generator,
     LICENSE.txt and the credit in README/About. Commit 15c7dad is the last one with the old names.
+32. Shader-build frame drops (2026-11-09): background pipeline compiles run on a few below-normal-priority threads
+    (PipelineCompileWorkers: logical processors / 4, between 2 and 6) instead of the shared thread pool, so a burst of new
+    pipelines no longer takes the processor from the game. The short wait for a new pipeline variant is capped at 2 ms per frame
+    in total (ShaderCompilationSettings.FrameWaitBudgetTicks); it used to be 1 ms per variant with no cap.
+33. Independence, stage 3a: removed the test projects and the macOS/Linux packaging files (distribution/macos, linux, misc).
+    Still to remove: OpenGL backend, Apple/SoundIo audio backends, Discord integration, online multiplayer (LDN), the updater.
 
 ## Restoring after a reformat
 Copy the newest folder inside "SuperSwitch Source Backup" on OneDrive to Documents\SuperSwitch, install the .NET 10 SDK

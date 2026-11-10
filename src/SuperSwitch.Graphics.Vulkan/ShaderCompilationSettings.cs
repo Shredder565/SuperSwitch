@@ -39,5 +39,37 @@ namespace SuperSwitch.Graphics.Vulkan
         /// Most variants finish well within this, because the driver reuses already compiled shaders.
         /// </summary>
         internal static readonly long VariantWaitBudgetTicks = Stopwatch.Frequency / 1000; // 1 ms
+
+        /// <summary>
+        /// The most time one frame may spend on those short waits in total. Without a cap, a frame that meets many new
+        /// pipeline variants at once (entering a new area) waited 1 ms for each of them and became a visible hitch.
+        /// </summary>
+        internal static readonly long FrameWaitBudgetTicks = Stopwatch.Frequency * 2 / 1000; // 2 ms
+
+        // Render thread only.
+        private static long _frameWaitSpentTicks;
+
+        /// <summary>
+        /// How long the next new variant may be waited for: the per-variant budget, or what is left of the frame's.
+        /// </summary>
+        internal static long TakeVariantWaitBudget()
+        {
+            long remaining = FrameWaitBudgetTicks - _frameWaitSpentTicks;
+
+            return remaining <= 0 ? 0 : System.Math.Min(VariantWaitBudgetTicks, remaining);
+        }
+
+        internal static void AddVariantWait(long ticks)
+        {
+            _frameWaitSpentTicks += ticks;
+        }
+
+        /// <summary>
+        /// Starts a new frame's wait budget. Called once per presented frame.
+        /// </summary>
+        public static void OnFramePresented()
+        {
+            _frameWaitSpentTicks = 0;
+        }
     }
 }

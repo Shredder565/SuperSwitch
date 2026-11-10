@@ -492,6 +492,7 @@ namespace SuperSwitch.Graphics.Vulkan
             }
 
             SuperSwitch.Common.StallProfiler.OnFramePresented();
+            ShaderCompilationSettings.OnFramePresented();
         }
 
         public override void SetAntiAliasing(AntiAliasing effect)

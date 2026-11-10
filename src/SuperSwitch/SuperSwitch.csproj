@@ -26,10 +26,6 @@
     </MSBuild>
   </Target>
 
-  <Target Name="PostBuild" AfterTargets="PostBuildEvent" Condition="$([MSBuild]::IsOSPlatform('OSX'))">
-    <Exec Command="codesign --entitlements '$(ProjectDir)..\..\distribution\macos\entitlements.xml' -f -s $(SigningCertificate) '$(TargetDir)$(TargetName)'" />
-  </Target>
-
   <PropertyGroup Condition="'$(RuntimeIdentifier)' != ''">
     <PublishSingleFile>true</PublishSingleFile>
     <TrimmerSingleWarn>false</TrimmerSingleWarn>
@@ -116,16 +112,6 @@
     </Content>
   </ItemGroup>
 
-  <ItemGroup Condition="'$(RuntimeIdentifier)' == 'linux-x64' OR '$(RuntimeIdentifier)' == 'linux-arm64' OR ('$(RuntimeIdentifier)' == '' AND $([MSBuild]::IsOSPlatform('Linux')))">
-    <Content Include="..\..\distribution\linux\Ryujinx.sh">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </Content>
-    <Content Include="..\..\distribution\linux\mime\Ryujinx.xml">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-      <TargetPath>mime\SuperSwitch.xml</TargetPath>
-    </Content>
-  </ItemGroup>
-
   <ItemGroup>
     <AvaloniaResource Include="UI\**\*.xaml">
       <SubType>Designer</SubType>
@@ -152,15 +138,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <EmbeddedResource Include="..\..\distribution\linux\shortcut-template.desktop">
-      <Link>Assets\ShortcutFiles\shortcut-template.desktop</Link>
-    </EmbeddedResource>
-    <EmbeddedResource Include="..\..\distribution\macos\shortcut-launch-script.sh">
-      <Link>Assets\ShortcutFiles\shortcut-launch-script.sh</Link>
-    </EmbeddedResource>
-    <EmbeddedResource Include="..\..\distribution\macos\shortcut-template.plist">
-      <Link>Assets\ShortcutFiles\shortcut-template.plist</Link>
-    </EmbeddedResource>
     <EmbeddedResource Include="..\..\docs\compatibility.csv" LogicalName="SuperSwitchGameCompatibilityList">
       <Link>Assets\SuperSwitchGameCompatibility.csv</Link>
     </EmbeddedResource>

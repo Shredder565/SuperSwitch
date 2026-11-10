@@ -1706,14 +1706,24 @@ namespace SuperSwitch.Graphics.Vulkan
                     }
 
                     long variantStart = SuperSwitch.Common.StallProfiler.Begin();
+                    long waitBudget = ShaderCompilationSettings.TakeVariantWaitBudget();
+                    long waitStart = System.Diagnostics.Stopwatch.GetTimestamp();
 
                     bool ready = _program.TryGetOrQueueGraphicsPipeline(
                         Gd,
                         ref _newState,
                         PipelineCache,
                         _renderPass,
-                        ShaderCompilationSettings.VariantWaitBudgetTicks,
+                        waitBudget,
                         out pipeline);
+
+                    long waited = System.Diagnostics.Stopwatch.GetTimestamp() - waitStart;
+
+                    // Only real waits count against the frame's budget, not ordinary cache lookups.
+                    if (waitBudget > 0 && waited > ShaderCompilationSettings.VariantWaitBudgetTicks / 10)
+                    {
+                        ShaderCompilationSettings.AddVariantWait(waited);
+                    }
 
                     SuperSwitch.Common.StallProfiler.End(SuperSwitch.Common.StallProfiler.Category.PipelineVariantWait, variantStart);
 

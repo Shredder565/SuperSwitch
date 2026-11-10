@@ -792,7 +792,8 @@ namespace SuperSwitch.Graphics.Vulkan
 
             Device device = _device;
 
-            pending.Task = Task.Run(() =>
+            // On the dedicated low-priority compile threads, not the shared thread pool (see PipelineCompileWorkers).
+            pending.Task = PipelineCompileWorkers.Run(() =>
             {
                 try
                 {
