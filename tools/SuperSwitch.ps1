@@ -1,5 +1,5 @@
 # SuperSwitch one-click launcher: builds SuperSwitch when the source changed, then starts it.
-param([switch]$ForceBuild, [switch]$BuildOnly)
+param([switch]$ForceBuild, [switch]$BuildOnly, [switch]$Clean)
 
 $ErrorActionPreference = 'Continue'
 $root = Split-Path -Parent $PSScriptRoot
@@ -17,6 +17,20 @@ $log = Join-Path $logDir ("build-$(Get-Date -Format 'yyyyMMdd-HHmmss').txt")
 $stamp = Join-Path $logDir 'last-successful-build.stamp'
 
 function Write-Step($text) { Write-Host "`n== $text" -ForegroundColor Cyan }
+
+if ($Clean -and (Test-Path $buildDir)) {
+    # Used when making the installer: start from an empty build folder (logs are kept), so files left over from
+    # earlier versions, such as the old Ryujinx-named libraries, are not packed into it.
+    Write-Step 'Emptying the build folder for a clean build'
+    try {
+        Get-ChildItem -LiteralPath $buildDir -Force | Where-Object { $_.Name -ne 'Logs' } | Remove-Item -Recurse -Force -ErrorAction Stop
+    } catch {
+        Write-Host "Could not empty the build folder: $_" -ForegroundColor Red
+        Write-Host 'Close SuperSwitch (and anything else using the build folder), then try again.' -ForegroundColor Yellow
+        exit 1
+    }
+    $ForceBuild = $true
+}
 
 function Test-NeedsBuild {
     if ($ForceBuild -or -not (Test-Path $exe) -or -not (Test-Path $stamp)) { return $true }

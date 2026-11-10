@@ -4,7 +4,7 @@ setlocal
 set "ROOT=%~dp0"
 
 echo [1/4] Building SuperSwitch...
-powershell -NoProfile -ExecutionPolicy Bypass -File "%ROOT%tools\SuperSwitch.ps1" -BuildOnly
+powershell -NoProfile -ExecutionPolicy Bypass -File "%ROOT%tools\SuperSwitch.ps1" -BuildOnly -Clean
 if errorlevel 1 goto fail
 
 echo.
