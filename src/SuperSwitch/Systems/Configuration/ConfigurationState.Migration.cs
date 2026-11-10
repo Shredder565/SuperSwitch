@@ -80,7 +80,7 @@ namespace SuperSwitch.Ava.Systems.Configuration
             Graphics.AspectRatio.Value = cff.AspectRatio;
             Graphics.ShadersDumpPath.Value = cff.GraphicsShadersDumpPath;
             Graphics.BackendThreading.Value = cff.BackendThreading;
-            Graphics.GraphicsBackend.Value = cff.GraphicsBackend;
+            Graphics.GraphicsBackend.Value = GraphicsBackend.Vulkan; // SuperSwitch: the only backend, whatever an old config says
             Graphics.PreferredGpu.Value = cff.PreferredGpu;
             Graphics.AntiAliasing.Value = cff.AntiAliasing;
             Graphics.ScalingFilter.Value = cff.ScalingFilter;

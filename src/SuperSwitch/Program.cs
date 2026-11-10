@@ -1,6 +1,5 @@
 using Avalonia;
 using Avalonia.Threading;
-using DiscordRPC;
 using Gommon;
 using Optris.Icons.Avalonia;
 using Optris.Icons.Avalonia.FontAwesome;
@@ -231,9 +230,6 @@ namespace SuperSwitch.Ava
 
         private static void Initialize(string[] args)
         {
-            // Ensure Discord presence timestamp begins at the absolute start of when SuperSwitch is launched
-            DiscordIntegrationModule.EmulatorStartedAt = Timestamps.Now;
-
             // Parse arguments
             CommandLineState.ParseArguments(args);
 
@@ -241,9 +237,6 @@ namespace SuperSwitch.Ava
             {
                 MVKInitialization.InitializeResolver();
             }
-
-            // Delete backup files after updating.
-            Task.Run(Updater.CleanupUpdate);
 
             // SuperSwitch: more thread pool workers up front, so bursts of background work (shader and pipeline
             // compiles, parallel texture decoding) don't wait for the pool to grow slowly.
@@ -270,9 +263,6 @@ namespace SuperSwitch.Ava
 
             // Initialize the logger system.
             LoggerModule.Initialize();
-
-            // Initialize Discord integration.
-            DiscordIntegrationModule.Initialize();
 
             // Initialize SDL3 driver
             SDL3Driver.MainThreadDispatcher = action => Dispatcher.UIThread.InvokeAsync(action, DispatcherPriority.Input);
@@ -376,7 +366,7 @@ namespace SuperSwitch.Ava
             if (CommandLineState.OverrideGraphicsBackend is not null)
                 ConfigurationState.Instance.Graphics.GraphicsBackend.Value = CommandLineState.OverrideGraphicsBackend.ToLower() switch
                 {
-                    "opengl" => GraphicsBackend.OpenGl,
+                    "opengl" => GraphicsBackend.Vulkan, // SuperSwitch has no OpenGL backend
                     "vulkan" => GraphicsBackend.Vulkan,
                     _ => ConfigurationState.Instance.Graphics.GraphicsBackend
                 };
@@ -499,8 +489,6 @@ namespace SuperSwitch.Ava
 
         internal static void Exit()
         {
-            DiscordIntegrationModule.Exit();
-
             Logger.Shutdown();
         }
     }

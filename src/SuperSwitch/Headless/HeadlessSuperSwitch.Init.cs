@@ -1,4 +1,3 @@
-using DiscordRPC;
 using LibHac.Tools.FsSystem;
 using SuperSwitch.Audio.Backends.SDL3;
 using SuperSwitch.Ava;
@@ -11,7 +10,6 @@ using SuperSwitch.Common.Logging;
 using SuperSwitch.Common.Utilities;
 using SuperSwitch.Cpu;
 using SuperSwitch.Graphics.GAL;
-using SuperSwitch.Graphics.OpenGL;
 using SuperSwitch.Graphics.Vulkan;
 using SuperSwitch.HLE;
 using SuperSwitch.Input;
@@ -28,12 +26,6 @@ namespace SuperSwitch.Headless
     {
         public static void Initialize()
         {
-            // Ensure Discord presence timestamp begins at the absolute start of when SuperSwitch is launched
-            DiscordIntegrationModule.EmulatorStartedAt = Timestamps.Now;
-
-            // Delete backup files after updating.
-            Task.Run(Updater.CleanupUpdate);
-
             // Hook unhandled exception and process exit events.
             AppDomain.CurrentDomain.UnhandledException += (sender, e)
                 => Program.ProcessUnhandledException(sender, e.ExceptionObject as Exception, e.IsTerminating);
@@ -41,9 +33,6 @@ namespace SuperSwitch.Headless
 
             // Initialize the configuration.
             ConfigurationState.Initialize();
-
-            // Initialize Discord integration.
-            DiscordIntegrationModule.Initialize();
 
             // Logging system information.
             Program.PrintSystemInfo();
@@ -210,7 +199,7 @@ namespace SuperSwitch.Headless
                     preferredGpuId);
             }
 
-            return new OpenGLRenderer();
+            throw new NotSupportedException("SuperSwitch only supports the Vulkan graphics backend.");
         }
 
         private static Switch InitializeEmulationContext(WindowBase window, IRenderer renderer, Options options) =>

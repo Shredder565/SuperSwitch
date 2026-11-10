@@ -429,24 +429,6 @@ namespace SuperSwitch.Ava.UI.Windows
 
                 await Dispatcher.UIThread.InvokeAsync(async () => await UserErrorDialog.ShowUserErrorDialog(UserError.NoKeys));
             }
-
-            if (!Updater.CanUpdate() || CommandLineState.HideAvailableUpdates)
-                return;
-
-            switch (ConfigurationState.Instance.UpdateCheckerType.Value)
-            {
-                case UpdaterType.PromptAtStartup:
-                    await Updater.BeginUpdateAsync()
-                        .Catch(task => Logger.Error?.Print(LogClass.Application, $"Updater Error: {task.Exception}"));
-                    break;
-                case UpdaterType.CheckInBackground:
-                    if ((await Updater.CheckVersionAsync()).TryGet(out (Version Current, Version Incoming) versions))
-                    {
-                        Dispatcher.UIThread.Post(() => SuperSwitchApp.MainWindow.ViewModel.UpdateAvailable = versions.Current < versions.Incoming);
-                    }
-
-                    break;
-            }
         }
 
         private void Load()

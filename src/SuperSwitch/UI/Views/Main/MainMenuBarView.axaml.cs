@@ -48,8 +48,6 @@ namespace SuperSwitch.Ava.UI.Views.Main
             CompatibilityListMenuItem.Command = Commands.Create(() => CompatibilityListWindow.Show());
             LdnGameListMenuItem.Command = Commands.Create(() => LdnGamesListWindow.Show());
 
-            UpdateMenuItem.Command = MainWindowViewModel.UpdateCommand;
-
             FaqMenuItem.Command =
                 SetupGuideMenuItem.Command =
                     LdnGuideMenuItem.Command = Commands.Create<string>(OpenHelper.OpenUrl);

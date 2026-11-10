@@ -3,7 +3,6 @@ using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Input;
 using Avalonia.Threading;
-using DiscordRPC;
 using LibHac.Common;
 using LibHac.Ns;
 using SuperSwitch.Audio.Backends.Apple;
@@ -34,7 +33,6 @@ using SuperSwitch.Common.Utilities;
 using SuperSwitch.Graphics.GAL;
 using SuperSwitch.Graphics.GAL.Multithreading;
 using SuperSwitch.Graphics.Gpu;
-using SuperSwitch.Graphics.OpenGL;
 using SuperSwitch.Graphics.Vulkan;
 using SuperSwitch.HLE.FileSystem;
 using SuperSwitch.HLE.HOS;
@@ -632,8 +630,6 @@ namespace SuperSwitch.Ava.Systems
                 gamepad?.Dispose();
             }
 
-            DiscordIntegrationModule.GuestAppStartedAt = null;
-
             Rainbow.Disable();
             Rainbow.Reset();
 
@@ -849,26 +845,13 @@ namespace SuperSwitch.Ava.Systems
                 _windowsMultimediaTimerResolution = null;
             }
 
-            if (RendererHost.EmbeddedWindow is EmbeddedWindowOpenGL openGlWindow)
+            // No use waiting on something that never started work
+            if (_renderingStarted)
             {
-                // Try to bind the OpenGL context before calling the shutdown event.
-                openGlWindow.MakeCurrent(false, false);
-
-                Device.DisposeGpu();
-
-                // Unbind context and destroy everything.
-                openGlWindow.MakeCurrent(true, false);
+                Device.Gpu.WaitUntilGpuReady();
             }
-            else
-            {
-                // No use waiting on something that never started work
-                if (_renderingStarted)
-                {
-                    Device.Gpu.WaitUntilGpuReady();
-                }
-                
-                Device.DisposeGpu();
-            }
+
+            Device.DisposeGpu();
         }
 
         private void HideCursorState_Changed(object sender, ReactiveEventArgs<HideCursorMode> state)
@@ -883,8 +866,6 @@ namespace SuperSwitch.Ava.Systems
 
         public async Task LoadGuestApplication(CancellationTokenSource cts, BlitStruct<ApplicationControlProperty>? customNacpData = null)
         {
-            DiscordIntegrationModule.GuestAppStartedAt = Timestamps.Now;
-
             InitEmulatedSwitch();
             MainWindow.UpdateGraphicsConfig();
 
@@ -1143,16 +1124,11 @@ namespace SuperSwitch.Ava.Systems
             VirtualFileSystem.ReloadKeySet();
 
             // Initialize Renderer.
-            GraphicsBackend backend = ConfigurationState.Instance.Graphics.GraphicsBackend;
-
-            IRenderer renderer = backend switch
-            {
-                GraphicsBackend.Vulkan => VulkanRenderer.Create(
-                    ConfigurationState.Instance.Graphics.PreferredGpu,
-                    (RendererHost.EmbeddedWindow as EmbeddedWindowVulkan)!.CreateSurface,
-                    VulkanHelper.GetRequiredInstanceExtensions),
-                _ => new OpenGLRenderer()
-            };
+            // SuperSwitch: Vulkan is the only graphics backend (on macOS through MoltenVK).
+            IRenderer renderer = VulkanRenderer.Create(
+                ConfigurationState.Instance.Graphics.PreferredGpu,
+                (RendererHost.EmbeddedWindow as EmbeddedWindowVulkan)!.CreateSurface,
+                VulkanHelper.GetRequiredInstanceExtensions);
 
             // Initialize Configuration.
             Device = new Switch(ConfigurationState.Instance.CreateHleConfiguration()
@@ -1276,8 +1252,6 @@ namespace SuperSwitch.Ava.Systems
 
             _renderer.ScreenCaptured += Renderer_ScreenCaptured;
 
-            (RendererHost.EmbeddedWindow as EmbeddedWindowOpenGL)?.InitializeBackgroundContext(_renderer);
-
             Device.Gpu.Renderer.Initialize(_glLogLevel);
 
             _renderer?.Window?.SetAntiAliasing(ConfigurationState.Instance.Graphics.AntiAliasing);
@@ -1323,8 +1297,7 @@ namespace SuperSwitch.Ava.Systems
                                 InitStatus();
                             }
 
-                            Device.PresentFrame(() =>
-                                (RendererHost.EmbeddedWindow as EmbeddedWindowOpenGL)?.SwapBuffers());
+                            Device.PresentFrame(() => { });
                         }
 
                         if (_ticks >= _ticksPerFrame)
@@ -1346,8 +1319,6 @@ namespace SuperSwitch.Ava.Systems
                 }
             });
 
-            (RendererHost.EmbeddedWindow as EmbeddedWindowOpenGL)?.MakeCurrent(true);
-
             // Reload settings when the game is turned off
             // (resets custom settings if there were any)
             Program.ReloadConfig();
@@ -1361,7 +1332,6 @@ namespace SuperSwitch.Ava.Systems
             _viewModel.BackendText = RendererHost.Backend switch
             {
                 GraphicsBackend.Vulkan => "Vulkan",
-                GraphicsBackend.OpenGl => "OpenGL",
                 _ => throw new NotImplementedException()
             };
 

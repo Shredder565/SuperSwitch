@@ -112,8 +112,12 @@ Ryubing's upstream config version was 73 when the original work started.
     (PipelineCompileWorkers: logical processors / 4, between 2 and 6) instead of the shared thread pool, so a burst of new
     pipelines no longer takes the processor from the game. The short wait for a new pipeline variant is capped at 2 ms per frame
     in total (ShaderCompilationSettings.FrameWaitBudgetTicks); it used to be 1 ms per variant with no cap.
-33. Independence, stage 3a: removed the test projects and the macOS/Linux packaging files (distribution/macos, linux, misc).
-    Still to remove: OpenGL backend, Apple/SoundIo audio backends, Discord integration, online multiplayer (LDN), the updater.
+33. Independence, stage 3 (2026-11-09): removed the OpenGL backend (project SuperSwitch.Graphics.OpenGL, its window and
+    context classes; Vulkan is the only backend and config loading forces it), Discord integration (DiscordIntegrationModule,
+    the DiscordRichPresence package, its setting and About link), the updater (Systems/Updater, the two update packages, its
+    menu item, status-bar button and setting), and the test projects.
+    Kept on purpose: macOS and Linux support (distribution/macos and distribution/linux, the Apple and SoundIo audio backends,
+    MoltenVK) and online multiplayer (LDN). Old config fields for the removed features are still read and written, unused.
 
 ## Restoring after a reformat
 Copy the newest folder inside "SuperSwitch Source Backup" on OneDrive to Documents\SuperSwitch, install the .NET 10 SDK

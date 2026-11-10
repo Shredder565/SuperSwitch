@@ -164,12 +164,6 @@ namespace SuperSwitch.Ava.UI.ViewModels
 
         [ObservableProperty] public partial bool SkylanderButtonEnabled { get; set; }
 
-        public static AsyncRelayCommand UpdateCommand { get; } = Commands.Create(async () =>
-        {
-            if (Updater.CanUpdate(true))
-                await Updater.BeginUpdateAsync(true);
-        });
-
         private bool _isGameRunning;
         private string _searchText;
         private Timer _searchTimer;
@@ -325,7 +319,7 @@ namespace SuperSwitch.Ava.UI.ViewModels
 
         public bool CanUpdate
         {
-            get => field && EnableNonGameRunningControls && Updater.CanUpdate();
+            get => false; // SuperSwitch has no updater
             set
             {
                 field = value;

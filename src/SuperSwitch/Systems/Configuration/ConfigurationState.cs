@@ -386,7 +386,8 @@ namespace SuperSwitch.Ava.Systems.Configuration
                 return GraphicsBackend.Vulkan;
             }
 
-            return GraphicsBackend.OpenGl;
+            // SuperSwitch has no other backend to fall back to.
+            return GraphicsBackend.Vulkan;
         }
     }
 }

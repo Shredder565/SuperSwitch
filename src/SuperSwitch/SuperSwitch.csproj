@@ -10,8 +10,6 @@
     <TieredPGO>true</TieredPGO>
     <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
     <ApplicationManifest>app.manifest</ApplicationManifest>
-    <!-- SuperSwitch: personal build, never replace itself with a Ryubing update. -->
-    <DefineConstants>$(DefineConstants);DISABLE_UPDATER</DefineConstants>
     <DefaultItemExcludes>$(DefaultItemExcludes);._*</DefaultItemExcludes>
   </PropertyGroup>
 
@@ -24,6 +22,10 @@
   <Target Name="BuildValidationProj" BeforeTargets="BeforeRebuild">
     <MSBuild Projects="..\SuperSwitch.BuildValidationTasks\SuperSwitch.BuildValidationTasks.csproj" Targets="Rebuild">
     </MSBuild>
+  </Target>
+
+  <Target Name="PostBuild" AfterTargets="PostBuildEvent" Condition="$([MSBuild]::IsOSPlatform('OSX'))">
+    <Exec Command="codesign --entitlements '$(ProjectDir)..\..\distribution\macos\entitlements.xml' -f -s $(SigningCertificate) '$(TargetDir)$(TargetName)'" />
   </Target>
 
   <PropertyGroup Condition="'$(RuntimeIdentifier)' != ''">
@@ -60,16 +62,12 @@
     <PackageReference Include="FluentAvaloniaUI" />
     <PackageReference Include="CommandLineParser" />
     <PackageReference Include="CommunityToolkit.Mvvm" />
-    <PackageReference Include="DiscordRichPresence" />
     <PackageReference Include="Optris.Icons.Avalonia" />
     <PackageReference Include="Optris.Icons.Avalonia.FontAwesome" />
     <PackageReference Include="Optris.Icons.Avalonia.MaterialDesign" />
-    <PackageReference Include="OpenTK.Core" />
     <PackageReference Include="Ryujinx.Audio.OpenAL" Condition="'$(RuntimeIdentifier)' != 'linux-x64' AND '$(RuntimeIdentifier)' != 'linux-arm64' AND '$(RuntimeIdentifier)' != 'osx-x64' AND '$(RuntimeIdentifier)' != 'osx-arm64'" />
     <PackageReference Include="Ryujinx.Graphics.Nvdec.Dependencies.AllArch" />
     <PackageReference Include="Ryujinx.Graphics.Vulkan.MoltenVK" Condition="'$(RuntimeIdentifier)' != 'linux-x64' AND '$(RuntimeIdentifier)' != 'linux-arm64' AND '$(RuntimeIdentifier)' != 'win-x64' AND '$(RuntimeIdentifier)' != 'win-arm64'" />
-    <PackageReference Include="Ryujinx.UpdateClient" />
-    <PackageReference Include="Ryujinx.Systems.Update.Common" />
     <PackageReference Include="securifybv.ShellLink" />
     <PackageReference Include="Sep" />
     <PackageReference Include="Silk.NET.Vulkan" />
@@ -81,7 +79,6 @@
   <ItemGroup>
     <ProjectReference Include="..\SuperSwitch.Graphics.RenderDocApi\SuperSwitch.Graphics.RenderDocApi.csproj" />
     <ProjectReference Include="..\SuperSwitch.Graphics.Vulkan/SuperSwitch.Graphics.Vulkan.csproj" />
-    <ProjectReference Include="..\SuperSwitch.Graphics.OpenGL/SuperSwitch.Graphics.OpenGL.csproj" />
     <ProjectReference Include="..\SuperSwitch.Input\SuperSwitch.Input.csproj" />
     <ProjectReference Include="..\SuperSwitch.Input.SDL3\SuperSwitch.Input.SDL3.csproj" />
     <ProjectReference Include="..\SuperSwitch.Audio.Backends.Apple\SuperSwitch.Audio.Backends.Apple.csproj" />
@@ -112,6 +109,16 @@
     </Content>
   </ItemGroup>
 
+  <ItemGroup Condition="'$(RuntimeIdentifier)' == 'linux-x64' OR '$(RuntimeIdentifier)' == 'linux-arm64' OR ('$(RuntimeIdentifier)' == '' AND $([MSBuild]::IsOSPlatform('Linux')))">
+    <Content Include="..\..\distribution\linux\Ryujinx.sh">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="..\..\distribution\linux\mime\Ryujinx.xml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      <TargetPath>mime\SuperSwitch.xml</TargetPath>
+    </Content>
+  </ItemGroup>
+
   <ItemGroup>
     <AvaloniaResource Include="UI\**\*.xaml">
       <SubType>Designer</SubType>
@@ -138,6 +145,15 @@
   </ItemGroup>
 
   <ItemGroup>
+    <EmbeddedResource Include="..\..\distribution\linux\shortcut-template.desktop">
+      <Link>Assets\ShortcutFiles\shortcut-template.desktop</Link>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\..\distribution\macos\shortcut-launch-script.sh">
+      <Link>Assets\ShortcutFiles\shortcut-launch-script.sh</Link>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\..\distribution\macos\shortcut-template.plist">
+      <Link>Assets\ShortcutFiles\shortcut-template.plist</Link>
+    </EmbeddedResource>
     <EmbeddedResource Include="..\..\docs\compatibility.csv" LogicalName="SuperSwitchGameCompatibilityList">
       <Link>Assets\SuperSwitchGameCompatibility.csv</Link>
     </EmbeddedResource>

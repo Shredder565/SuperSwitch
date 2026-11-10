@@ -309,16 +309,6 @@
                     <Binding Path="UpdateAvailable" />
                 </MultiBinding>
             </StackPanel.IsVisible>
-            <Button Margin="0, 0, 5, -2"
-                    Command="{Binding UpdateCommand}"
-                    Background="{DynamicResource SystemAccentColor}">
-                <TextBlock
-                    Margin="-5"
-                    Foreground="{StaticResource SystemColorButtonTextColor}"
-                    HorizontalAlignment="Right"
-                    VerticalAlignment="Center"
-                    Text="{ext:Locale UpdaterBackgroundStatusBarButtonText}" />
-            </Button>
             <controls:MiniVerticalSeparator Margin="5,0,0,0"/>
         </StackPanel>
         <StackPanel

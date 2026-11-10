@@ -7,7 +7,6 @@ using SuperSwitch.Common.Configuration.Hid;
 using SuperSwitch.Common.Logging;
 using SuperSwitch.Graphics.GAL;
 using SuperSwitch.Graphics.GAL.Multithreading;
-using SuperSwitch.Graphics.OpenGL;
 using SuperSwitch.HLE.HOS.Applets;
 using SuperSwitch.HLE.HOS.Services.Account.Acc;
 using SuperSwitch.HLE.HOS.Services.Am.AppletOE.ApplicationProxyService.ApplicationProxy.Types;
@@ -444,15 +443,8 @@ namespace SuperSwitch.Headless
             };
             renderLoopThread.Start();
 
+            // The stutter workaround thread was only needed by the OpenGL renderer, which SuperSwitch no longer has.
             Thread nvidiaStutterWorkaround = null;
-            if (Renderer is OpenGLRenderer)
-            {
-                nvidiaStutterWorkaround = new Thread(NvidiaStutterWorkaround)
-                {
-                    Name = "GUI.NvidiaStutterWorkaround",
-                };
-                nvidiaStutterWorkaround.Start();
-            }
 
             MainLoop();
 

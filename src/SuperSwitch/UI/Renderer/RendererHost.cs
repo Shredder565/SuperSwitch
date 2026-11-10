@@ -19,12 +19,8 @@ namespace SuperSwitch.Ava.UI.Renderer
             Focusable = true;
             FlowDirection = FlowDirection.LeftToRight;
 
-            EmbeddedWindow = ConfigurationState.Instance.Graphics.GraphicsBackend.Value switch
-            {
-                GraphicsBackend.OpenGl => new EmbeddedWindowOpenGL(),
-                GraphicsBackend.Vulkan => new EmbeddedWindowVulkan(),
-                _ => throw new NotSupportedException()
-            };
+            // SuperSwitch: Vulkan is the only graphics backend.
+            EmbeddedWindow = new EmbeddedWindowVulkan();
 
             Initialize();
         }
@@ -33,7 +29,6 @@ namespace SuperSwitch.Ava.UI.Renderer
             EmbeddedWindow switch
             {
                 EmbeddedWindowVulkan => GraphicsBackend.Vulkan,
-                EmbeddedWindowOpenGL => GraphicsBackend.OpenGl,
                 _ => throw new NotImplementedException()
             };
 

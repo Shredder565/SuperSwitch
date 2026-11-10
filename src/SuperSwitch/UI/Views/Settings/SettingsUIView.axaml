@@ -74,13 +74,6 @@
                                 <TextBlock Classes="globalConfigMarker" IsVisible="{Binding IsGameTitleNotNull}" />
                             </StackPanel>
                         </CheckBox>
-                        <CheckBox IsChecked="{Binding EnableDiscordIntegration}">
-                            <StackPanel Orientation="Horizontal">
-                                <TextBlock VerticalAlignment="Center"
-                                           ToolTip.Tip="{ext:Locale ToggleDiscordTooltip}"
-                                           Text="{ext:Locale SettingsTabGeneralEnableDiscordRichPresence}" />
-                            </StackPanel>
-                        </CheckBox>
                         <StackPanel
                             Margin="0, 15, 0, 0"
                             Orientation="Horizontal">
@@ -101,26 +94,6 @@
                                 <ComboBoxItem
                                     Content="{ext:Locale SettingsTabGeneralFocusLossTypePauseEmulation}" />
                             </ComboBox>
-                        </StackPanel>
-                        <StackPanel
-                            IsEnabled="{Binding !IsGameTitleNotNull}"
-                            Opacity="{Binding PanelOpacity}"
-                            Margin="0, 15, 0, 0"
-                            Orientation="Horizontal">
-                            <TextBlock VerticalAlignment="Center"
-                                       Text="{ext:Locale SettingsTabGeneralCheckUpdatesOnLaunch}"
-                                       Width="150" />
-                            <ComboBox SelectedIndex="{Binding UpdateCheckerType}"
-                                      HorizontalContentAlignment="Left"
-                                      MinWidth="100">
-                                <ComboBoxItem
-                                    Content="{ext:Locale CommonOff}" />
-                                <ComboBoxItem
-                                    Content="{ext:Locale SettingsTabGeneralCheckUpdatesOnLaunchPromptAtStartup}" />
-                                <ComboBoxItem
-                                    Content="{ext:Locale SettingsTabGeneralCheckUpdatesOnLaunchBackground}" />
-                            </ComboBox>
-                            <TextBlock Classes="globalConfigMarker" IsVisible="{Binding IsGameTitleNotNull}" />
                         </StackPanel>
                         <StackPanel
                             Margin="0, 15, 0, 0"

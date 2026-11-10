@@ -53,7 +53,6 @@ namespace SuperSwitch.Ava.Systems.AppLibrary
 
         public bool HasLdnGames => PlayerCount != 0 && GameCount != 0;
 
-        public bool HasRichPresenceAsset => DiscordIntegrationModule.HasAssetImage(IdString);
         public bool HasDynamicRichPresenceSupport => RichPresenceSpec.HasValue;
 
         public TimeSpan TimePlayed { get; set; }

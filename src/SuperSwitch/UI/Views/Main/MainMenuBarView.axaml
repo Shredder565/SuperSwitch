@@ -295,12 +295,6 @@
                         Icon="{ext:Icon fa-solid fa-circle-info}"
                         CommandParameter="{x:Static common:SharedConstants.FaqWikiUrl}" />
                 </MenuItem>
-                <MenuItem
-                    Name="UpdateMenuItem"
-                    IsVisible="False"
-                    IsEnabled="{Binding CanUpdate}"
-                    Header="{ext:Locale MenuBarHelpCheckForUpdates}"
-                    Icon="{ext:Icon fa-solid fa-rotate}" />
             </MenuItem>
         </Menu>
     </DockPanel>

@@ -185,13 +185,10 @@ namespace SuperSwitch.Headless
 
             GraphicsConfig.EnableShaderCache = !option.DisableShaderCache;
 
-            if (OperatingSystem.IsMacOS())
+            if (option.GraphicsBackend == GraphicsBackend.OpenGl)
             {
-                if (option.GraphicsBackend == GraphicsBackend.OpenGl)
-                {
-                    option.GraphicsBackend = GraphicsBackend.Vulkan;
-                    Logger.Warning?.Print(LogClass.Application, "OpenGL is not supported on macOS, switching to Vulkan!");
-                }
+                option.GraphicsBackend = GraphicsBackend.Vulkan;
+                Logger.Warning?.Print(LogClass.Application, "OpenGL is not supported by SuperSwitch, switching to Vulkan!");
             }
 
             if (option.ListInputIds)
@@ -356,11 +353,7 @@ namespace SuperSwitch.Headless
 
         private static WindowBase CreateWindow(Options options)
         {
-            return options.GraphicsBackend switch
-            {
-                GraphicsBackend.Vulkan => new VulkanWindow(_inputManager, options.LoggingGraphicsDebugLevel, options.AspectRatio, options.EnableMouse, options.HideCursorMode, options.IgnoreControllerApplet),
-                _ => new OpenGLWindow(_inputManager, options.LoggingGraphicsDebugLevel, options.AspectRatio, options.EnableMouse, options.HideCursorMode, options.IgnoreControllerApplet)
-            };
+            return new VulkanWindow(_inputManager, options.LoggingGraphicsDebugLevel, options.AspectRatio, options.EnableMouse, options.HideCursorMode, options.IgnoreControllerApplet);
         }
 
         private static void ExecutionEntrypoint()
